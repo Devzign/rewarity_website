@@ -1,0 +1,3 @@
+ALTER TABLE `product_master`
+  ADD COLUMN `UnitPrice` DECIMAL(12,2) NOT NULL DEFAULT 0 AFTER `IsActive`,
+  ADD COLUMN `CurrentStock` DECIMAL(12,2) NOT NULL DEFAULT 0 AFTER `UnitPrice`;
