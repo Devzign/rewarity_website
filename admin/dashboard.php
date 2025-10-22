@@ -67,16 +67,14 @@ $currentPage = 'dashboard';
     ********************-->
     <div id="preloader">
         <div class="waviy">
-		   <span style="--i:1">L</span>
-		   <span style="--i:2">o</span>
-		   <span style="--i:3">a</span>
-		   <span style="--i:4">d</span>
-		   <span style="--i:5">i</span>
-		   <span style="--i:6">n</span>
-		   <span style="--i:7">g</span>
-		   <span style="--i:8">.</span>
-		   <span style="--i:9">.</span>
-		   <span style="--i:10">.</span>
+		   <span style="--i:1">R</span>
+		   <span style="--i:2">E</span>
+		   <span style="--i:3">W</span>
+		   <span style="--i:4">A</span>
+		   <span style="--i:5">R</span>
+		   <span style="--i:6">I</span>
+		   <span style="--i:7">T</span>
+		   <span style="--i:8">Y</span>
 		</div>
     </div>
     <!--*******************
@@ -98,6 +96,7 @@ $currentPage = 'dashboard';
 			<div class="container-fluid">
 				<div class="row invoice-card-row">
 					<div class="col-xl-3 col-xxl-3 col-sm-6">
+						<a href="/admin/users.php" class="text-decoration-none" style="display:block;color:inherit;">
 						<div class="card bg-warning invoice-card">
 							<div class="card-body d-flex">
 								<div class="icon me-3">
@@ -113,8 +112,10 @@ $currentPage = 'dashboard';
 								</div>
 							</div>
 						</div>
+						</a>
 					</div>
 					<div class="col-xl-3 col-xxl-3 col-sm-6">
+						<a href="/admin/users.php?status=active" class="text-decoration-none" style="display:block;color:inherit;">
 						<div class="card bg-success invoice-card">
 							<div class="card-body d-flex">
 								<div class="icon me-3">
@@ -132,8 +133,10 @@ $currentPage = 'dashboard';
 								</div>
 							</div>
 						</div>
+						</a>
 					</div>
 					<div class="col-xl-3 col-xxl-3 col-sm-6">
+						<a href="/admin/users.php?status=inactive" class="text-decoration-none" style="display:block;color:inherit;">
 						<div class="card bg-info invoice-card">
 							<div class="card-body d-flex">
 								<div class="icon me-3">
@@ -151,8 +154,10 @@ $currentPage = 'dashboard';
 								</div>
 							</div>
 						</div>
+						</a>
 					</div>
 					<div class="col-xl-3 col-xxl-3 col-sm-6">
+						<a href="/admin/roles.php" class="text-decoration-none" style="display:block;color:inherit;">
 						<div class="card bg-secondary invoice-card">
 							<div class="card-body d-flex">
 								<div class="icon me-3">
@@ -168,6 +173,7 @@ $currentPage = 'dashboard';
 								</div>
 							</div>
 						</div>
+						</a>
 					</div>
 				</div>
 				<div class="row">

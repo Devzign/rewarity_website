@@ -4,7 +4,10 @@ require_once __DIR__ . '/helpers.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
-$includeAdmin = (isset($_GET['include_admin']) && to_bool($_GET['include_admin'])) ? true : false;
+// Enforce authentication (Bearer token or admin session)
+require_auth();
+
+$includeAdmin = isset($_GET['include_admin']) ? to_bool($_GET['include_admin']) : true;
 
 try {
     $query = 'SELECT id, typename, description FROM user_type';
@@ -16,9 +19,13 @@ try {
     $types = [];
     if ($result = $conn->query($query)) {
         while ($row = $result->fetch_assoc()) {
+            $code = strtoupper((string)($row['typename'] ?? ''));
+            // Pretty display label: "SUPER_ADMIN" -> "Super Admin", "SALESPERSON" -> "Salesperson"
+            $display = ucwords(strtolower(str_replace('_', ' ', $code)));
             $types[] = [
                 'id' => (int)$row['id'],
-                'name' => $row['typename'],
+                'name' => $code,                // canonical code (UPPERCASE)
+                'display_name' => $display,     // UI-friendly label
                 'description' => $row['description'] ?? null,
             ];
         }

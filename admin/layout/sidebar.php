@@ -16,6 +16,12 @@ $currentPage = $currentPage ?? '';
                 <span class="nav-text">User Management</span>
               </a>
             </li>
+            <li class="<?php echo $currentPage === 'roles' ? 'mm-active' : ''; ?>">
+              <a href="/admin/roles.php" aria-expanded="false">
+                <i class="las la-id-badge"></i>
+                <span class="nav-text">User Roles</span>
+              </a>
+            </li>
             <li class="<?php echo $currentPage === 'products' ? 'mm-active' : ''; ?>">
               <a href="/admin/products.php" aria-expanded="false">
                 <i class="las la-box"></i>

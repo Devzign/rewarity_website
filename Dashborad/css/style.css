@@ -37,7 +37,7 @@
   --title: #000; }
 
 .gradient_one {
-  background-image: linear-gradient(to right, rgba(186, 1, 181, 0.85) 0%, rgba(103, 25, 255, 0.85) 100%); }
+  background-image: linear-gradient(to right, rgba(29, 185, 84, 0.85) 0%, rgba(15, 122, 58, 0.85) 100%); }
 
 .gradient-1 {
   background: #1ed760;
@@ -82,11 +82,11 @@
   filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#36b9d8', endColorstr='#4bffa2',GradientType=1 ); }
 
 .gradient-7 {
-  background: #4400eb;
-  background: -moz-linear-gradient(left, #4400eb 0%, #44e7f5 100%);
-  background: -webkit-linear-gradient(left, #4400eb 0%, #44e7f5 100%);
-  background: linear-gradient(to right, #4400eb 0%, #44e7f5 100%) !important;
-  filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#4400eb', endColorstr='#44e7f5',GradientType=1 ); }
+  background: #1db954;
+  background: -moz-linear-gradient(left, #1db954 0%, #13a146 100%);
+  background: -webkit-linear-gradient(left, #1db954 0%, #13a146 100%);
+  background: linear-gradient(to right, #1db954 0%, #13a146 100%) !important;
+  filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#1db954', endColorstr='#13a146',GradientType=1 ); }
 
 .gradient-8 {
   background: #F7B00F;
@@ -125,11 +125,11 @@
 
 
 .gradient-15 {
-  background: #9a56ff;
-  background: -moz-linear-gradient(-45deg, #9a56ff 0%, #e36cd9 100%);
-  background: -webkit-linear-gradient(-45deg, #9a56ff 0%, #e36cd9 100%);
-  background: linear-gradient(135deg, #9a56ff 0%, #e36cd9 100%);
-  filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#9a56ff', endColorstr='#e36cd9',GradientType=1 ); }
+  background: #1ed760;
+  background: -moz-linear-gradient(-45deg, #1ed760 0%, #1db954 100%);
+  background: -webkit-linear-gradient(-45deg, #1ed760 0%, #1db954 100%);
+  background: linear-gradient(135deg, #1ed760 0%, #1db954 100%);
+  filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#1ed760', endColorstr='#1db954',GradientType=1 ); }
 
 .gradient-16 {
   background: #f48665;
@@ -139,18 +139,18 @@
   filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#f48665', endColorstr='#fda23f',GradientType=1 ); }
 
 .gradient-17 {
-  background: #e36cd9;
-  background: -moz-linear-gradient(-45deg, #e36cd9 0%, #fe60ae 100%);
-  background: -webkit-linear-gradient(-45deg, #e36cd9 0%, #fe60ae 100%);
-  background: linear-gradient(135deg, #e36cd9 0%, #fe60ae 100%);
-  filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#e36cd9', endColorstr='#fe60ae',GradientType=1 ); }
+  background: #20c263;
+  background: -moz-linear-gradient(-45deg, #20c263 0%, #178f47 100%);
+  background: -webkit-linear-gradient(-45deg, #20c263 0%, #178f47 100%);
+  background: linear-gradient(135deg, #20c263 0%, #178f47 100%);
+  filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#20c263', endColorstr='#178f47',GradientType=1 ); }
 
 .gradient-18 {
-  background: #a15cff;
-  background: -moz-linear-gradient(left, #a15cff 0%, #ce82fd 100%);
-  background: -webkit-linear-gradient(left, #a15cff 0%, #ce82fd 100%);
-  background: linear-gradient(to right, #a15cff 0%, #ce82fd 100%);
-  filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#a15cff', endColorstr='#ce82fd',GradientType=1 ); }
+  background: #1db954;
+  background: -moz-linear-gradient(left, #1db954 0%, #13a146 100%);
+  background: -webkit-linear-gradient(left, #1db954 0%, #13a146 100%);
+  background: linear-gradient(to right, #1db954 0%, #13a146 100%);
+  filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#1db954', endColorstr='#13a146',GradientType=1 ); }
 
 /*
 0 - 600: Phone
@@ -170,14 +170,14 @@ Fixing Order => Base + Typography >> General Layout + Grid >> Page Layout + Comp
  */
 :root {
   --bs-blue: #5e72e4;
-  --bs-indigo: #6610f2;
-  --bs-purple: #6f42c1;
+  --bs-indigo: #1db954;
+  --bs-purple: #1db954;
   --bs-pink: #e83e8c;
   --bs-red: #EE3232;
   --bs-orange: #ff9900;
   --bs-yellow: #FFFA6F;
-  --bs-green: #6610F2;
-  --bs-teal: #6610f2;
+  --bs-green: #1db954;
+  --bs-teal: #20c997;
   --bs-cyan: #3065D0;
   --bs-white: #fff;
   --bs-gray: #6c757d;
@@ -191,9 +191,9 @@ Fixing Order => Base + Typography >> General Layout + Grid >> Page Layout + Comp
   --bs-gray-700: #495057;
   --bs-gray-800: #343a40;
   --bs-gray-900: #212529;
-  --bs-primary: #5bcfc5;
+  --bs-primary: #1db954;
   --bs-secondary: #709fba;
-  --bs-success: #6610f2;
+  --bs-success: #1db954;
   --bs-info: #b48dd3;
   --bs-warning: #ffa755;
   --bs-danger: #f72b50;
@@ -241,6 +241,39 @@ body {
   background-color: var(--bs-body-bg);
   -webkit-text-size-adjust: 100%;
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0); }
+
+/* Global form control harmonization: make selects match inputs */
+.form-control,
+.form-select {
+  height: 44px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  box-shadow: none !important;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: #cfd6dc;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.03) !important;
+}
+
+.form-control[readonly],
+.form-control:disabled,
+.form-select:disabled {
+  background-color: #f1f3f5 !important;
+  color: #6b7280 !important;
+  opacity: 1;
+}
+
+/* Ensure consistent arrow spacing for selects */
+.form-select {
+  background-color: #fff;
+  background-repeat: no-repeat;
+  background-position: right 0.8rem center;
+  background-size: 16px 12px;
+}
 
 hr {
   margin: 1rem 0;
@@ -6088,7 +6121,7 @@ textarea.form-control {
 
 .text-success {
   --bs-text-opacity: 1;
-  color:  #6610f2 !important; }
+  color:  var(--primary) !important; }
 
 .text-info {
   --bs-text-opacity: 1;
@@ -6100,7 +6133,7 @@ textarea.form-control {
 
 .text-danger {
   --bs-text-opacity: 1;
-  color: #6610f2; }
+  color: var(--primary); }
 
 .text-light {
   --bs-text-opacity: 1;
@@ -8294,10 +8327,10 @@ a {
   color: #5e72e4; }
 
 .text-indigo {
-  color: #6610f2; }
+  color: var(--primary); }
 
 .text-purple {
-  color: #6f42c1; }
+  color: var(--primary); }
 
 .text-pink {
   color: #e83e8c; }
@@ -8796,7 +8829,7 @@ label {
   background-color: #fff; }
   .waviy span
   {
-    color: rgb(102 16 242);
+    color: var(--primary);
   }
 
 [data-theme-version="dark"] #preloader {
@@ -8901,7 +8934,7 @@ label {
       .nav-header .svg-logo-primary-path {
         fill: var(--primary) !important; }
       .nav-header .logo-abbr path:nth-child(1) {
-        fill: #6610F2 !important; }
+        fill: var(--primary) !important; }
       .nav-header .logo-abbr path:nth-child(2) {
         fill: #F8A961 !important; } }
   .nav-header .svg-logo-primary-path {
@@ -13714,7 +13747,7 @@ Fixing Order => Base + Typography >> General Layout + Grid >> Page Layout + Comp
   .sidebar-right #header_color_2 + label,
   .sidebar-right #sidebar_color_2 + label,
   .sidebar-right #primary_color_2 + label {
-    background-color: #6610f2; }
+    background-color: var(--primary); }
   .sidebar-right #nav_header_color_3 + label,
   .sidebar-right #header_color_3 + label,
   .sidebar-right #sidebar_color_3 + label,
@@ -14264,7 +14297,7 @@ Fixing Order => Base + Typography >> General Layout + Grid >> Page Layout + Comp
   --headerbg: rgb(232 234 236); }
 
 [data-nav-headerbg="color_2"] {
-  --nav-headbg: #6610f2; }
+  --nav-headbg: var(--primary); }
 
 [data-nav-headerbg="color_3"] {
   --nav-headbg: #5bcfc5; }
@@ -14307,8 +14340,8 @@ Fixing Order => Base + Typography >> General Layout + Grid >> Page Layout + Comp
 
 [data-sibebarbg="color_2"][data-theme-version="dark"],
 [data-sibebarbg="color_2"] {
-  --sidebar-bg: #6610f2;
-  --nav-headbg: #6610f2; }
+  --sidebar-bg: var(--primary);
+  --nav-headbg: var(--primary); }
   [data-sibebarbg="color_2"][data-theme-version="dark"] .hamburger .line,
   [data-sibebarbg="color_2"] .hamburger .line {
     background: #fff; }
@@ -14363,7 +14396,7 @@ Fixing Order => Base + Typography >> General Layout + Grid >> Page Layout + Comp
     color: #fff; }
   [data-sibebarbg="color_2"][data-theme-version="dark"][data-sidebar-style="full"][data-layout="vertical"] .menu-toggle .dlabnav .metismenu li > ul,
   [data-sibebarbg="color_2"][data-sidebar-style="full"][data-layout="vertical"] .menu-toggle .dlabnav .metismenu li > ul {
-    background: #6610f2; }
+    background: var(--primary); }
   [data-sibebarbg="color_2"][data-theme-version="dark"][data-sidebar-style="full"][data-layout="vertical"] .menu-toggle .dlabnav .metismenu > li.mm-active > a, [data-sibebarbg="color_2"][data-theme-version="dark"][data-sidebar-style="full"][data-layout="vertical"] .menu-toggle .dlabnav .metismenu > li:hover > a,
   [data-sibebarbg="color_2"][data-sidebar-style="full"][data-layout="vertical"] .menu-toggle .dlabnav .metismenu > li.mm-active > a,
   [data-sibebarbg="color_2"][data-sidebar-style="full"][data-layout="vertical"] .menu-toggle .dlabnav .metismenu > li:hover > a {
@@ -14374,7 +14407,7 @@ Fixing Order => Base + Typography >> General Layout + Grid >> Page Layout + Comp
       color: #fff; }
   [data-sibebarbg="color_2"][data-theme-version="dark"][data-sidebar-style="mini"] .dlabnav .metismenu li > ul,
   [data-sibebarbg="color_2"][data-sidebar-style="mini"] .dlabnav .metismenu li > ul {
-    background: #6610f2; }
+    background: var(--primary); }
   [data-sibebarbg="color_2"][data-theme-version="dark"][data-sidebar-style="mini"] .dlabnav .metismenu > li.mm-active > a, [data-sibebarbg="color_2"][data-theme-version="dark"][data-sidebar-style="mini"] .dlabnav .metismenu > li:hover > a,
   [data-sibebarbg="color_2"][data-sidebar-style="mini"] .dlabnav .metismenu > li.mm-active > a,
   [data-sibebarbg="color_2"][data-sidebar-style="mini"] .dlabnav .metismenu > li:hover > a {
@@ -14388,7 +14421,7 @@ Fixing Order => Base + Typography >> General Layout + Grid >> Page Layout + Comp
     color: #fff; }
   [data-sibebarbg="color_2"][data-theme-version="dark"][data-sidebar-style="compact"][data-layout="vertical"] .dlabnav .metismenu li > ul,
   [data-sibebarbg="color_2"][data-sidebar-style="compact"][data-layout="vertical"] .dlabnav .metismenu li > ul {
-    background: #6610f2; }
+    background: var(--primary); }
   [data-sibebarbg="color_2"][data-theme-version="dark"][data-sidebar-style="compact"][data-layout="vertical"] .dlabnav .metismenu li > a,
   [data-sibebarbg="color_2"][data-sidebar-style="compact"][data-layout="vertical"] .dlabnav .metismenu li > a {
     color: rgba(255, 255, 255, 0.85); }
@@ -14414,7 +14447,7 @@ Fixing Order => Base + Typography >> General Layout + Grid >> Page Layout + Comp
   [data-sibebarbg="color_2"][data-sidebar-style="modern"] .dlabnav .metismenu li > ul,
   [data-sibebarbg="color_2"][data-sidebar-style="overlay"] .dlabnav .metismenu li > ul,
   [data-sibebarbg="color_2"][data-sidebar-style="icon-hover"] .dlabnav .metismenu li > ul {
-    background: #6610f2; }
+    background: var(--primary); }
   [data-sibebarbg="color_2"][data-theme-version="dark"][data-sidebar-style="modern"] .dlabnav .metismenu > li.mm-active > a, [data-sibebarbg="color_2"][data-theme-version="dark"][data-sidebar-style="modern"] .dlabnav .metismenu > li:hover > a, [data-sibebarbg="color_2"][data-theme-version="dark"][data-sidebar-style="overlay"] .dlabnav .metismenu > li.mm-active > a, [data-sibebarbg="color_2"][data-theme-version="dark"][data-sidebar-style="overlay"] .dlabnav .metismenu > li:hover > a, [data-sibebarbg="color_2"][data-theme-version="dark"][data-sidebar-style="icon-hover"] .dlabnav .metismenu > li.mm-active > a, [data-sibebarbg="color_2"][data-theme-version="dark"][data-sidebar-style="icon-hover"] .dlabnav .metismenu > li:hover > a,
   [data-sibebarbg="color_2"][data-sidebar-style="modern"] .dlabnav .metismenu > li.mm-active > a,
   [data-sibebarbg="color_2"][data-sidebar-style="modern"] .dlabnav .metismenu > li:hover > a,
@@ -14466,7 +14499,7 @@ Fixing Order => Base + Typography >> General Layout + Grid >> Page Layout + Comp
       stroke: #fff; }
     [data-sibebarbg="color_2"][data-theme-version="dark"] .dropdown-menu .dropdown-item:hover,
     [data-sibebarbg="color_2"] .dropdown-menu .dropdown-item:hover {
-      background: #6610f2;
+      background: var(--primary);
       color: #fff !important; }
   [data-sibebarbg="color_2"][data-theme-version="dark"][data-sibebarbg="color_7"] .hamburger .line, [data-sibebarbg="color_2"][data-theme-version="dark"][data-sibebarbg="color_8"] .hamburger .line,
   [data-sibebarbg="color_2"][data-sibebarbg="color_7"] .hamburger .line,
@@ -18436,7 +18469,7 @@ Fixing Order => Base + Typography >> General Layout + Grid >> Page Layout + Comp
       color: #000; }
 
 [data-headerbg="color_2"] {
-  --headerbg: #6610f2; }
+  --headerbg: var(--primary); }
 
 [data-headerbg="color_3"] {
   --headerbg: #5bcfc5; }
@@ -18583,7 +18616,7 @@ Fixing Order => Base + Typography >> General Layout + Grid >> Page Layout + Comp
   max-width: 1480px; }
 
 [data-primary="color_2"] {
-  --primary: #6610f2;
+  --primary: #1db954;
   --secondary: #709fba;
   --primary-hover: #510bc4;
   --primary-dark: #290564;
@@ -18751,7 +18784,7 @@ Fixing Order => Base + Typography >> General Layout + Grid >> Page Layout + Comp
 
 .apexcharts-bar-area
 {
-  fill: #6610f2;
+  fill: var(--primary);
 }
 
 
@@ -22732,7 +22765,7 @@ html:not([dir=rtl]) .noUi-horizontal .noUi-handle {
 
 .accordion-gradient .accordion-header {
   color: #fff;
-  background-image: linear-gradient(to right, rgba(186, 1, 181, 0.85) 0%, rgba(103, 25, 255, 0.85) 100%);
+  background-image: linear-gradient(to right, rgba(29, 185, 84, 0.85) 0%, rgba(15, 122, 58, 0.85) 100%);
   border-color: transparent;
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0; }
@@ -22742,7 +22775,7 @@ html:not([dir=rtl]) .noUi-horizontal .noUi-handle {
 
 .accordion-gradient .accordion__body {
   color: #fff;
-  background-image: linear-gradient(to right, rgba(186, 1, 181, 0.85) 0%, rgba(103, 25, 255, 0.85) 100%);
+  background-image: linear-gradient(to right, rgba(29, 185, 84, 0.85) 0%, rgba(15, 122, 58, 0.85) 100%);
   border-color: transparent; }
 
 .alert {
@@ -30338,7 +30371,7 @@ html[dir="rtl"] [direction="rtl"][data-sidebar-style="compact"]:not([data-layout
   padding-right: 9.375rem; }
 
 :root {
-  --primary: #6610f2;
+  --primary: #1db954;
 --secondary: #709fba;
 --primary-hover: #510bc4;
 --primary-dark: #290564;

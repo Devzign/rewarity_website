@@ -21,7 +21,7 @@ if ($password === '') {
 }
 
 try {
-  $stmt = $conn->prepare(
+$stmt = $conn->prepare(
     'SELECT u.Id,
             u.UserName,
             u.Email,
@@ -40,7 +40,18 @@ try {
   $user = $result->fetch_assoc();
   $stmt->close();
 
-  if (!$user || empty($user['PasswordHash'])) {
+  if (!$user) {
+    json_response(401, ['error' => 'Invalid credentials.']);
+  }
+
+  // Enforce login method per user type
+  $typeCode = strtoupper((string)($user['UserType'] ?? ''));
+  $adminTypes = ['SUPER_ADMIN','ADMIN','EMPLOYEE'];
+  if (!in_array($typeCode, $adminTypes, true)) {
+    json_response(403, ['error' => 'Use mobile OTP login for this user type.']);
+  }
+
+  if (empty($user['PasswordHash'])) {
     json_response(401, ['error' => 'Invalid credentials.']);
   }
 
@@ -49,6 +60,10 @@ try {
   }
 
   $isActive = (int)$user['IsActive'] === 1;
+
+  if (!$isActive) {
+    json_response(403, ['error' => 'Email not verified. Please verify the OTP sent to your email.']);
+  }
 
   json_response(200, [
     'message' => 'Login successful.',

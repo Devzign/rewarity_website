@@ -1,0 +1,26 @@
+# VCS
+.git/
+.gitattributes
+.gitignore
+
+# macOS noise
+.DS_Store
+
+# Local artifacts
+sql/
+Logo/
+# Keep demo assets; admin login uses style.css here
+# login_form_demo/
+includes/env.php
+includes/env.local.php
+
+# Node/Composer caches if any
+node_modules/
+vendor/compiled.php
+vendor/bin/
+composer.lock
+package-lock.json
+
+# IDE
+.idea/
+.vscode/

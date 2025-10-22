@@ -47,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Rewarity Admin Login</title>
-  <link rel="stylesheet" href="../login_form_demo/style.css">
+  <link rel="stylesheet" href="/login_form_demo/style.css">
   <style>
     .login-header h1 { margin-bottom: 4px; }
     .login-header p { margin-bottom: 0; }

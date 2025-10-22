@@ -1,0 +1,587 @@
+openapi: 3.0.3
+info:
+  title: Rewarity Admin API
+  version: 1.0.0
+  description: |
+    Admin-facing APIs for products and orders.
+    
+    Authentication: Use Bearer token or an active admin session.
+    
+    - Bearer token header: `Authorization: Bearer <token>`
+    - Configure token via environment variable `API_BEARER_TOKEN` (defaults to `dev-token`).
+servers:
+  - url: /
+    description: Relative server (same origin)
+  - url: http://localhost:8000/
+    description: PHP built-in server
+security:
+  - bearerAuth: []
+paths:
+  /api/login.php:
+    post:
+      operationId: login
+      tags: [Auth]
+      summary: Login with email and password
+      description: Returns basic user info on successful authentication. Requires email to be verified. No Bearer token required.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            examples:
+              default:
+                value:
+                  email: user@example.com
+                  password: secret123
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Invalid credentials
+        '422':
+          description: Validation error
+        '500':
+          description: Server error
+
+  /api/login_mobile.php:
+    post:
+      operationId: login_mobile
+      tags: [Auth]
+      summary: Login using mobile + OTP (non-admin users)
+      description: For Dealer/Distributor/Salesperson and other non-admin roles. Verifies OTP and logs in. No Bearer token required.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mobile, otp]
+              properties:
+                mobile: { type: string }
+                otp: { type: string }
+      responses:
+        '200': { description: Login successful }
+        '401': { description: Invalid code or user }
+        '403': { description: Not allowed for this type; use email/password }
+        '410': { description: Code expired }
+        '422': { description: Validation error }
+        '500': { description: Server error }
+
+  /api/register.php:
+    post:
+      operationId: register_user
+      tags: [Auth]
+      summary: Register a new user
+      description: |
+        Creates a user. Admin/Employee/Super Admin must provide a password and are activated immediately.
+        Other roles (Dealer/Distributor/Salesperson) authenticate via mobile OTP; their account remains inactive until mobile OTP is verified.
+        No Bearer token required.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            examples:
+              default:
+                value:
+                  name: Jane Doe
+                  email: jane@example.com
+                  password: secret123
+                  user_type_id: 3
+                  mobile: "9876543210"
+      responses:
+        '201':
+          description: Registered; Active for admin/employee; mobile OTP sent for others
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterResponse'
+        '409':
+          description: Email or mobile already registered
+        '422':
+          description: Validation error
+        '500':
+          description: Server error
+  /api/products.php:
+    get:
+      operationId: list_products
+      tags: [Products]
+      summary: List products with summary
+      parameters:
+        - in: query
+          name: search
+          schema: { type: string }
+          description: Filter by name or code
+        - in: query
+          name: status
+          schema: { type: string, enum: [active, inactive] }
+        - in: query
+          name: min_stock
+          schema: { type: number }
+      responses:
+        '200':
+          description: Products and summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  summary:
+                    type: object
+                    properties:
+                      total_products: { type: integer }
+                      total_stock: { type: number }
+                      inventory_value: { type: number }
+                      average_price: { type: number }
+                  products:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Product'
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+    post:
+      operationId: create_product
+      tags: [Products]
+      summary: Create product
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProductCreateMultipart'
+      responses:
+        '200':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+                  product_id: { type: integer }
+        '409':
+          description: Conflict
+        '422':
+          description: Validation error
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+
+  /api/orders.php:
+    get:
+      operationId: list_orders
+      tags: [Orders]
+      summary: List orders with summary
+      parameters:
+        - { in: query, name: product_id, schema: { type: integer } }
+        - { in: query, name: dealer_id, schema: { type: integer } }
+        - { in: query, name: distributor_id, schema: { type: integer } }
+        - { in: query, name: salesperson_id, schema: { type: integer } }
+        - { in: query, name: start_date, schema: { type: string, format: date } }
+        - { in: query, name: end_date, schema: { type: string, format: date } }
+      responses:
+        '200':
+          description: Orders and summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  summary:
+                    type: object
+                    properties:
+                      total_orders: { type: integer }
+                      total_quantity: { type: number }
+                      total_amount: { type: number }
+                      average_amount: { type: number }
+                  orders:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Order'
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+    post:
+      operationId: create_order
+      tags: [Orders]
+      summary: Create order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderCreateJSON'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/OrderCreateMultipart'
+      responses:
+        '200':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+                  order_id: { type: integer }
+                  order_number: { type: string }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+        '422': { description: Validation error }
+
+  /api/order_support.php:
+    get:
+      operationId: list_order_support
+      tags: [Orders]
+      summary: Supporting lists for orders
+      responses:
+        '200':
+          description: Lists
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  dealers: { type: array, items: { $ref: '#/components/schemas/IdName' } }
+                  distributors: { type: array, items: { $ref: '#/components/schemas/IdName' } }
+                  salespersons: { type: array, items: { $ref: '#/components/schemas/IdName' } }
+                  products: { type: array, items: { $ref: '#/components/schemas/ProductSimple' } }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+
+  /api/users_by_type.php:
+    get:
+      operationId: users_by_type
+      tags: [Users]
+      summary: List users filtered by user type(s)
+      description: Returns users for the specified type code(s) (e.g., DEALER, DISTRIBUTOR, SALESPERSON). Accepts `type=...` or `types=DEALER,DISTRIBUTOR`.
+      parameters:
+        - in: query
+          name: type
+          schema: { type: string }
+          description: Single type code (UPPERCASE) e.g., DEALER
+        - in: query
+          name: types
+          schema: { type: string }
+          description: Comma-separated list of type codes e.g., DEALER,DISTRIBUTOR
+      responses:
+        '200':
+          description: Users grouped by type
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: integer }
+                        name: { type: string }
+                        email: { type: string, nullable: true }
+                        is_active: { type: boolean }
+                        type: { type: string }
+                  by_type:
+                    type: object
+        '422': { description: Missing type(s) }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+
+  /api/dealers.php:
+    get:
+      operationId: list_dealers
+      tags: [Users]
+      summary: List dealers
+      responses:
+        '200':
+          description: Dealers
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  dealers:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: integer }
+                        name: { type: string }
+                        email: { type: string, nullable: true }
+                        is_active: { type: boolean }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+
+  /api/distributors.php:
+    get:
+      operationId: list_distributors
+      tags: [Users]
+      summary: List distributors
+      responses:
+        '200':
+          description: Distributors
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  distributors:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: integer }
+                        name: { type: string }
+                        email: { type: string, nullable: true }
+                        is_active: { type: boolean }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+
+  /api/pincode.php:
+    get:
+      operationId: lookup_pincode
+      tags: [Pincode]
+      summary: Lookup city/state by pincode
+      description: Returns city, state, and country for a given pincode if mapped.
+      security: []
+      parameters:
+        - in: query
+          name: pincode
+          required: true
+          schema: { type: string }
+        - in: query
+          name: autolink
+          schema: { type: boolean }
+          description: When true, if an exact city match is found in DB, create pincode mapping automatically.
+      responses:
+        '200':
+          description: Match found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  pincode: { type: string }
+                  city:
+                    type: object
+                    properties:
+                      id: { type: integer }
+                      name: { type: string }
+                  state:
+                    type: object
+                    properties:
+                      id: { type: integer, nullable: true }
+                      name: { type: string, nullable: true }
+                  country:
+                    type: object
+                    properties:
+                      id: { type: integer, nullable: true }
+                      name: { type: string, nullable: true }
+        '404':
+          description: Pincode not found
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+    post:
+      operationId: upsert_pincode
+      tags: [Pincode]
+      summary: Upsert pincode mapping (auto-resolve city)
+      description: |
+        Creates or updates a mapping in `pincode_master`.
+        If `city_id` is omitted, the service calls India Post API to resolve city/state and matches to your DB. If no matching city is found in your DB, returns 422 with suggested names.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [pincode]
+              properties:
+                pincode: { type: string }
+                city_id: { type: integer, description: "Optional. If provided, used directly. Otherwise resolved via India Post API." }
+      responses:
+        '201':
+          description: Mapping created
+        '200':
+          description: Mapping updated
+        '422':
+          description: Could not resolve city from pincode or invalid params
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+  /api/user_types.php:
+    get:
+      operationId: list_user_types
+      tags: [User Types]
+      summary: List user types
+      parameters:
+        - in: query
+          name: include_admin
+          schema: { type: boolean }
+      responses:
+        '200':
+          description: User types
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_types:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: integer }
+                        name: { type: string, description: "Canonical code (UPPERCASE), e.g. DEALER" }
+                        display_name: { type: string, description: "UI label, e.g. Dealer" }
+                        description: { type: string, nullable: true }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  responses:
+    UnauthorizedError:
+      description: Missing or invalid Bearer token
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error: { type: string }
+              message: { type: string }
+  schemas:
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string }
+    LoginResponse:
+      type: object
+      properties:
+        message: { type: string }
+        user:
+          type: object
+          properties:
+            id: { type: integer }
+            name: { type: string }
+            email: { type: string, format: email }
+            user_type_id: { type: integer, nullable: true }
+            user_type_name: { type: string, nullable: true }
+            is_active: { type: boolean }
+    RegisterRequest:
+      type: object
+      required: [name, email, user_type_id, address_line1, pincode]
+      properties:
+        name: { type: string }
+        email: { type: string, format: email }
+        password: { type: string, minLength: 6, description: "Required for Admin/Employee/Super Admin only" }
+        user_type_id: { type: integer }
+        mobile: { type: string }
+        pincode: { type: string, description: "Postal code; requires city_id when provided" }
+        is_active: { type: boolean }
+        address_line1: { type: string }
+        address_line2: { type: string }
+        city_id: { type: integer }
+        state_id: { type: integer }
+        country_id: { type: integer }
+    RegisterResponse:
+      type: object
+      properties:
+        message: { type: string }
+        user_id: { type: integer }
+        email_verification: { type: string, description: "sent|error" }
+    IdName:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+    Product:
+      type: object
+      properties:
+        id: { type: integer }
+        product_name: { type: string }
+        product_code: { type: string }
+        unit_price: { type: number }
+        current_stock: { type: number }
+        is_active: { type: boolean }
+        start_date: { type: string, format: date, nullable: true }
+        created_on: { type: string, format: date-time, nullable: true }
+    ProductSimple:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        unit_price: { type: number }
+        current_stock: { type: number }
+    ProductCreate:
+      type: object
+      required: [product_name, product_code, unit_price, current_stock]
+      properties:
+        product_name: { type: string }
+        product_code: { type: string }
+        unit_price: { type: number }
+        current_stock: { type: number }
+        start_date: { type: string, format: date }
+        is_active: { type: integer, enum: [0,1] }
+        notes: { type: string }
+    ProductCreateMultipart:
+      type: object
+      required: [product_name, product_code, unit_price, current_stock]
+      properties:
+        product_name: { type: string }
+        product_code: { type: string }
+        unit_price: { type: number, format: float }
+        current_stock: { type: number, format: float }
+        start_date: { type: string }
+        is_active: { type: integer }
+        notes: { type: string }
+    Order:
+      type: object
+      properties:
+        id: { type: integer }
+        order_number: { type: string }
+        order_date: { type: string, format: date }
+        total_amount: { type: number }
+        notes: { type: string, nullable: true }
+        attachment: { type: string, nullable: true }
+        attachment_url: { type: string, nullable: true }
+        dealer_name: { type: string }
+        distributor_name: { type: string }
+        salesperson_name: { type: string }
+        product_name: { type: string }
+        quantity: { type: number }
+        unit_price: { type: number }
+        item_total: { type: number }
+    OrderCreateJSON:
+      type: object
+      required: [dealer_id, distributor_id, salesperson_id, product_id, quantity, unit_price]
+      properties:
+        dealer_id: { type: integer }
+        distributor_id: { type: integer }
+        salesperson_id: { type: integer }
+        product_id: { type: integer }
+        quantity: { type: number }
+        unit_price: { type: number }
+        order_date: { type: string, format: date }
+        notes: { type: string }
+        total_amount: { type: number }
+        created_by_user_id: { type: integer, description: "Required if session not present" }
+        attachment_base64: { type: string }
+        attachment_name: { type: string }
+    OrderCreateMultipart:
+      type: object
+      required: [dealer_id, distributor_id, salesperson_id, product_id, quantity, unit_price]
+      properties:
+        dealer_id: { type: integer }
+        distributor_id: { type: integer }
+        salesperson_id: { type: integer }
+        product_id: { type: integer }
+        quantity: { type: number }
+        unit_price: { type: number }
+        order_date: { type: string }
+        notes: { type: string }
+        total_amount: { type: number }
+        attachment: { type: string, format: binary }

@@ -4,6 +4,9 @@ require_once __DIR__ . '/helpers.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
+// Enforce authentication (Bearer token or admin session)
+require_auth();
+
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
 if ($method === 'GET') {

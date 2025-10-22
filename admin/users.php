@@ -61,6 +61,7 @@ $formData = [
   'confirm_password' => '',
   'user_type_id' => '',
   'mobile' => '',
+  'pincode' => '',
   'is_active' => '1',
   'address1' => '',
   'address2' => '',
@@ -82,6 +83,16 @@ try {
   $errorMessage = 'Unable to load user types: ' . $exception->getMessage();
 }
 
+/**
+ * Convert canonical user type code (e.g., SUPER_ADMIN) to display label (e.g., Super Admin).
+ */
+function display_user_type_label(?string $code): string
+{
+  if ($code === null || $code === '') return '—';
+  return ucwords(strtolower(str_replace('_', ' ', $code)));
+}
+
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'create_user') {
   $formData['name'] = trim((string)($_POST['name'] ?? ''));
   $formData['email'] = trim((string)($_POST['email'] ?? ''));
@@ -89,12 +100,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'creat
   $formData['confirm_password'] = (string)($_POST['confirm_password'] ?? '');
   $formData['user_type_id'] = trim((string)($_POST['user_type_id'] ?? ''));
   $formData['mobile'] = trim((string)($_POST['mobile'] ?? ''));
+  $formData['pincode'] = trim((string)($_POST['pincode'] ?? ''));
   $formData['is_active'] = isset($_POST['is_active']) ? '1' : '0';
   $formData['address1'] = trim((string)($_POST['address1'] ?? ''));
   $formData['address2'] = trim((string)($_POST['address2'] ?? ''));
-  $cityId = null;
-  $stateId = null;
-  $countryId = null;
+  $cityId = isset($_POST['city_id']) && $_POST['city_id'] !== '' ? (int)$_POST['city_id'] : null;
+  $stateId = isset($_POST['state_id']) && $_POST['state_id'] !== '' ? (int)$_POST['state_id'] : null;
+  $countryId = isset($_POST['country_id']) && $_POST['country_id'] !== '' ? (int)$_POST['country_id'] : null;
 
   if ($formData['name'] === '') {
     $formErrors['name'] = 'Name is required.';
@@ -173,7 +185,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'creat
         $addressStmt->close();
       }
 
-      $passwordHash = password_hash($formData['password'], PASSWORD_DEFAULT);
+      $passwordHash = $formData['password'] !== '' ? password_hash($formData['password'], PASSWORD_DEFAULT) : null;
       $isActiveValue = $formData['is_active'] === '1' ? 1 : 0;
       $userTypeIdValue = (int)$formData['user_type_id'];
       $nameParam = $formData['name'];
@@ -181,21 +193,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'creat
       $addressParam = $addressId ?: null;
       $employeeParam = null;
 
-      $userStmt = $conn->prepare(
-        'INSERT INTO user_master (Id, UserName, IsActive, Email, PasswordHash, UserTypeId, AddressId, EmployeeId)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-      );
-      $userStmt->bind_param(
-        'isissiii',
-        $userId,
-        $nameParam,
-        $isActiveValue,
-        $emailParam,
-        $passwordHash,
-        $userTypeIdValue,
-        $addressParam,
-        $employeeParam
-      );
+      // Detect if PasswordHash column exists in user_master
+      $hasPasswordHash = false;
+      try {
+        $colChk = $conn->query("SHOW COLUMNS FROM user_master LIKE 'PasswordHash'");
+        $hasPasswordHash = ($colChk && $colChk->num_rows > 0);
+        $colChk?->free();
+      } catch (mysqli_sql_exception $e) {
+        $hasPasswordHash = false;
+      }
+
+      if ($hasPasswordHash) {
+        $userStmt = $conn->prepare(
+          'INSERT INTO user_master (Id, UserName, IsActive, Email, PasswordHash, UserTypeId, AddressId, EmployeeId)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+        );
+        $userStmt->bind_param(
+          'isissiii',
+          $userId,
+          $nameParam,
+          $isActiveValue,
+          $emailParam,
+          $passwordHash,
+          $userTypeIdValue,
+          $addressParam,
+          $employeeParam
+        );
+      } else {
+        // Fallback for schemas without PasswordHash column
+        $userStmt = $conn->prepare(
+          'INSERT INTO user_master (Id, UserName, IsActive, Email, UserTypeId, AddressId, EmployeeId)
+           VALUES (?, ?, ?, ?, ?, ?, ?)'
+        );
+        $userStmt->bind_param(
+          'isisiii',
+          $userId,
+          $nameParam,
+          $isActiveValue,
+          $emailParam,
+          $userTypeIdValue,
+          $addressParam,
+          $employeeParam
+        );
+      }
       $userStmt->execute();
       $userStmt->close();
 
@@ -214,7 +254,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'creat
 
       $conn->commit();
       $transactionStarted = false;
-      header('Location: users.php?created=1');
+      header('Location: /admin/users.php?created=1');
       exit;
     }
   } catch (mysqli_sql_exception $exception) {
@@ -345,6 +385,33 @@ function render_address(array $row): string
     <link rel="stylesheet" href="vendor/nouislider/nouislider.min.css">
     <link href="css/style.css" rel="stylesheet">
     <style>
+      /* Uniform control sizes */
+      .create-user-panel .form-control,
+      .create-user-panel .form-select {
+        height: 44px;
+        padding-top: 10px;
+        padding-bottom: 10px;
+        border: 1px solid #dee2e6;
+        box-shadow: none !important;
+      }
+      .create-user-panel .form-control:focus,
+      .create-user-panel .form-select:focus {
+        border-color: #cfd6dc;
+        box-shadow: 0 0 0 2px rgba(0,0,0,0.03) !important;
+      }
+      .create-user-panel .readonly-field[readonly] {
+        background-color: #f1f3f5 !important;
+        color: #495057 !important;
+        opacity: 1; /* keep text readable */
+      }
+      .create-user-panel .readonly-field::placeholder {
+        color: #9aa0a6;
+        opacity: 1;
+      }
+      .create-user-panel .form-select { background-color: #fff; }
+      .create-user-panel label.form-label { color: #6b7280; font-weight: 500; }
+      .create-user-panel .row.g-3 > [class^="col-"] { display: flex; flex-direction: column; }
+      .create-user-panel .btn { height: 44px; padding: 0 18px; }
       .users-filter-card {
         background: #ffffff;
         border-radius: 12px;
@@ -438,7 +505,7 @@ function render_address(array $row): string
                         </ul>
                       </div>
                     <?php endif; ?>
-                    <form method="post" action="users.php" class="row g-3">
+                    <form method="post" action="/admin/users.php" class="row g-3">
                         <input type="hidden" name="action" value="create_user">
                         <div class="col-md-6">
                             <label class="form-label">Full Name<span class="text-danger">*</span></label>
@@ -461,13 +528,18 @@ function render_address(array $row): string
                             <select name="user_type_id" class="form-select" required>
                                 <option value="">Select user type</option>
                                 <?php foreach ($userTypes as $type): ?>
-                                  <option value="<?php echo (int)$type['id']; ?>" <?php echo $formData['user_type_id'] === (string)$type['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($type['typename']); ?></option>
+                                  <?php $label = display_user_type_label($type['typename']); ?>
+                                  <option value="<?php echo (int)$type['id']; ?>" <?php echo $formData['user_type_id'] === (string)$type['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($label); ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Mobile</label>
                             <input type="text" name="mobile" class="form-control" value="<?php echo htmlspecialchars($formData['mobile']); ?>" placeholder="e.g. 9876543210">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Pincode</label>
+                            <input type="text" name="pincode" id="pincodeInput" class="form-control" value="<?php echo htmlspecialchars($formData['pincode']); ?>" placeholder="e.g. 110044" maxlength="10">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Status</label>
@@ -484,6 +556,21 @@ function render_address(array $row): string
                             <label class="form-label">Address Line 2</label>
                             <input type="text" name="address2" class="form-control" value="<?php echo htmlspecialchars($formData['address2']); ?>">
                         </div>
+                        <div class="col-md-6">
+                            <label class="form-label">City</label>
+                            <input type="text" id="cityName" class="form-control readonly-field" value="" placeholder="Auto from pincode" readonly>
+                            <input type="hidden" name="city_id" id="cityId" value="<?php echo isset($cityId) && $cityId !== null ? (int)$cityId : ''; ?>">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">State</label>
+                            <input type="text" id="stateName" class="form-control readonly-field" value="" placeholder="Auto from pincode" readonly>
+                            <input type="hidden" name="state_id" id="stateId" value="<?php echo isset($stateId) && $stateId !== null ? (int)$stateId : ''; ?>">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Country</label>
+                            <input type="text" id="countryName" class="form-control readonly-field" value="" placeholder="Auto from pincode" readonly>
+                            <input type="hidden" name="country_id" id="countryId" value="<?php echo isset($countryId) && $countryId !== null ? (int)$countryId : ''; ?>">
+                        </div>
                         <div class="col-12 text-end">
                             <button type="submit" class="btn btn-primary">Save User</button>
                         </div>
@@ -491,7 +578,7 @@ function render_address(array $row): string
                 </div>
 
                 <div class="users-filter-card">
-                    <form class="row g-3" method="get" action="users.php">
+                    <form class="row g-3" method="get" action="/admin/users.php">
                         <div class="col-md-3">
                             <label class="form-label">Search by Name</label>
                             <input type="text" class="form-control" name="name" value="<?php echo htmlspecialchars($filters['name']); ?>" placeholder="e.g. John">
@@ -505,7 +592,8 @@ function render_address(array $row): string
                             <select name="user_type" class="form-select">
                                 <option value="">All User Types</option>
                                 <?php foreach ($userTypes as $type): ?>
-                                  <option value="<?php echo (int)$type['id']; ?>" <?php echo $filters['user_type'] === (string)$type['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($type['typename']); ?></option>
+                                  <?php $label = display_user_type_label($type['typename']); ?>
+                                  <option value="<?php echo (int)$type['id']; ?>" <?php echo $filters['user_type'] === (string)$type['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($label); ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -519,7 +607,7 @@ function render_address(array $row): string
                         </div>
                         <div class="col-12 d-flex gap-2">
                             <button type="submit" class="btn btn-primary"><i class="las la-search me-1"></i>Search</button>
-                            <a href="users.php" class="btn btn-light border"><i class="las la-sync me-1"></i>Reset</a>
+                            <a href="/admin/users.php" class="btn btn-light border"><i class="las la-sync me-1"></i>Reset</a>
                         </div>
                     </form>
                 </div>
@@ -552,15 +640,15 @@ function render_address(array $row): string
                                         <td><?php echo htmlspecialchars($user['UserName'] ?? '—'); ?></td>
                                         <td><?php echo htmlspecialchars($user['Email'] ?? '—'); ?></td>
                                         <td><?php echo htmlspecialchars($user['MobileNumber'] ?? '—'); ?></td>
-                                        <td><?php echo htmlspecialchars($user['UserType'] ?? '—'); ?></td>
+                                        <td><?php echo htmlspecialchars(display_user_type_label($user['UserType'] ?? '')); ?></td>
                                         <td><?php echo render_address($user); ?></td>
                                         <td><?php echo htmlspecialchars($user['CreatedOn'] ? date('Y-m-d', strtotime($user['CreatedOn'])) : '—'); ?></td>
                                         <td><?php echo render_status_badge($user['IsActive']); ?></td>
                                         <td class="text-center">
                                             <div class="btn-group" role="group">
-                                                <button type="button" class="btn btn-sm btn-outline-primary" title="View" disabled><i class="las la-eye"></i></button>
-                                                <button type="button" class="btn btn-sm btn-outline-warning" title="Edit" disabled><i class="las la-edit"></i></button>
-                                                <button type="button" class="btn btn-sm btn-outline-danger" title="Disable" disabled><i class="las la-ban"></i></button>
+                                                <button type="button" class="btn btn-sm btn-outline-primary js-view-user" data-user-id="<?php echo (int)$user['Id']; ?>" title="View"><i class="las la-eye"></i></button>
+                                                <button type="button" class="btn btn-sm btn-outline-warning js-edit-user" data-user-id="<?php echo (int)$user['Id']; ?>" title="Edit"><i class="las la-edit"></i></button>
+                                                <button type="button" class="btn btn-sm btn-outline-danger js-disable-user" data-user-id="<?php echo (int)$user['Id']; ?>" title="Disable"><i class="las la-ban"></i></button>
                                             </div>
                                         </td>
                                     </tr>
@@ -570,7 +658,57 @@ function render_address(array $row): string
                         </table>
                     </div>
                 </div>
+
+
             </div>
+        </div>
+
+        <!-- View/Edit Modal -->
+        <div class="modal fade" id="userModal" tabindex="-1" aria-hidden="true">
+          <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="userModalTitle">User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <form id="userEditForm" class="row g-3">
+                  <input type="hidden" id="editUserId">
+                  <div class="col-md-6">
+                    <label class="form-label">Full Name</label>
+                    <input type="text" id="editName" class="form-control" required>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Email</label>
+                    <input type="email" id="editEmail" class="form-control" required>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Mobile</label>
+                    <input type="text" id="editMobile" class="form-control">
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">User Type</label>
+                    <select id="editUserType" class="form-select">
+                      <?php foreach ($userTypes as $type): $label = display_user_type_label($type['typename']); ?>
+                        <option value="<?php echo (int)$type['id']; ?>"><?php echo htmlspecialchars($label); ?></option>
+                      <?php endforeach; ?>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label">Status</label>
+                    <select id="editStatus" class="form-select">
+                      <option value="1">Active</option>
+                      <option value="0">Inactive</option>
+                    </select>
+                  </div>
+                </form>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="saveUserBtn">Save changes</button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <script>
@@ -582,6 +720,106 @@ function render_address(array $row): string
                 panel.classList.toggle('active');
               });
             }
+
+            // Pincode auto-resolve
+            const pin = document.getElementById('pincodeInput');
+            const cityName = document.getElementById('cityName');
+            const stateName = document.getElementById('stateName');
+            const countryName = document.getElementById('countryName');
+            const cityId = document.getElementById('cityId');
+            const stateId = document.getElementById('stateId');
+            const countryId = document.getElementById('countryId');
+            async function resolvePincode(value){
+              const v = (value || '').trim();
+              if (!v) return;
+              try {
+                const res = await fetch(`/api/pincode.php?pincode=${encodeURIComponent(v)}&autolink=true`);
+                if (!res.ok) throw new Error('lookup failed');
+                const data = await res.json();
+                cityName.value = (data && data.city && data.city.name) ? data.city.name : '';
+                stateName.value = (data && data.state && data.state.name) ? data.state.name : '';
+                countryName.value = (data && data.country && data.country.name) ? data.country.name : '';
+                cityId.value = (data && data.city && data.city.id) ? data.city.id : '';
+                stateId.value = (data && data.state && data.state.id) ? data.state.id : '';
+                countryId.value = (data && data.country && data.country.id) ? data.country.id : '';
+              } catch (e) {
+                cityName.value = stateName.value = countryName.value = '';
+                cityId.value = stateId.value = countryId.value = '';
+              }
+            }
+            if (pin){
+              pin.addEventListener('change', (e)=> resolvePincode(e.target.value));
+              pin.addEventListener('blur', (e)=> resolvePincode(e.target.value));
+              // Prevent Enter from submitting the form when focusing pincode
+              pin.addEventListener('keydown', function(e){
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  resolvePincode(pin.value);
+                }
+              });
+            }
+
+            // Users actions
+            const userModalEl = document.getElementById('userModal');
+            const userModal = (typeof bootstrap !== 'undefined') ? bootstrap.Modal.getOrCreateInstance(userModalEl) : null;
+            const titleEl = document.getElementById('userModalTitle');
+            const editForm = document.getElementById('userEditForm');
+            const saveBtn = document.getElementById('saveUserBtn');
+
+            async function fetchUser(id){
+              const res = await fetch(`/admin/user_actions.php?action=show&id=${id}`);
+              if (!res.ok) throw new Error('Unable to load user');
+              return res.json();
+            }
+            async function updateUser(payload){
+              const res = await fetch('/admin/user_actions.php', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)});
+              if (!res.ok) throw new Error('Update failed');
+              return res.json();
+            }
+            async function disableUser(id){
+              const res = await fetch('/admin/user_actions.php', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({action:'disable', id})});
+              if (!res.ok) throw new Error('Disable failed');
+            }
+
+            function fillForm(d, readOnly=false){
+              document.getElementById('editUserId').value = d.id;
+              document.getElementById('editName').value = d.name || '';
+              document.getElementById('editEmail').value = d.email || '';
+              document.getElementById('editMobile').value = d.mobile || '';
+              document.getElementById('editUserType').value = d.user_type_id || '';
+              document.getElementById('editStatus').value = d.is_active ? '1' : '0';
+              editForm.querySelectorAll('input,select').forEach(el=>{ el.disabled = readOnly; });
+              saveBtn.style.display = readOnly ? 'none' : 'inline-block';
+            }
+
+            document.querySelectorAll('.js-view-user').forEach(btn => btn.addEventListener('click', async (e)=>{
+              const id = e.currentTarget.dataset.userId;
+              try{ const d = await fetchUser(id); fillForm(d, true); titleEl.textContent = 'View User'; userModal?.show(); }catch(err){ alert(err.message); }
+            }));
+
+            document.querySelectorAll('.js-edit-user').forEach(btn => btn.addEventListener('click', async (e)=>{
+              const id = e.currentTarget.dataset.userId;
+              try{ const d = await fetchUser(id); fillForm(d, false); titleEl.textContent = 'Edit User'; userModal?.show(); }catch(err){ alert(err.message); }
+            }));
+
+            saveBtn?.addEventListener('click', async ()=>{
+              const payload = {
+                action: 'update',
+                id: document.getElementById('editUserId').value,
+                name: document.getElementById('editName').value,
+                email: document.getElementById('editEmail').value,
+                mobile: document.getElementById('editMobile').value,
+                user_type_id: document.getElementById('editUserType').value,
+                is_active: document.getElementById('editStatus').value
+              };
+              try{ await updateUser(payload); location.reload(); }catch(err){ alert(err.message); }
+            });
+
+            document.querySelectorAll('.js-disable-user').forEach(btn => btn.addEventListener('click', async (e)=>{
+              const id = e.currentTarget.dataset.userId;
+              if (!confirm('Disable this user?')) return;
+              try{ await disableUser(id); location.reload(); }catch(err){ alert(err.message); }
+            }));
           });
         </script>
 
