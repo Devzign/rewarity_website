@@ -1,0 +1,94 @@
+/* Rewarity Admin Theme System (light/dark/grey + accent) */
+
+/* Defaults (light) */
+html[data-theme="light"], html:not([data-theme]) {
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #f7f8fa;
+  --text: #111827;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+  --shadow: 0 8px 20px rgba(0,0,0,0.06);
+  --accent: #1DB954; /* Green */
+  --sidebar-bg: #ffffff;
+  --sidebar-text: #111827;
+}
+
+/* Grey (original-ish) */
+html[data-theme="grey"] {
+  --bg: #eef1f5;
+  --surface: #ffffff;
+  --surface-2: #f2f4f7;
+  --text: #1f2937;
+  --muted: #6b7280;
+  --border: #e5e7eb;
+  --shadow: 0 10px 24px rgba(0,0,0,0.08);
+  --accent: #1DB954;
+  --sidebar-bg: #ffffff;
+  --sidebar-text: #1f2937;
+}
+
+/* Dark */
+html[data-theme="dark"] {
+  --bg: #0f172a; /* slate-900 */
+  --surface: #111827; /* slate-800 */
+  --surface-2: #0b1223; /* near bg */
+  --text: #e5e7eb;
+  --muted: #9ca3af;
+  --border: #1f2937;
+  --shadow: 0 8px 20px rgba(0,0,0,0.5);
+  --accent: #22c55e; /* Green 500 */
+  --sidebar-bg: #0b1223;
+  --sidebar-text: #e5e7eb;
+}
+
+/* Accent helpers (JS sets --accent, these are fallbacks) */
+html[data-accent="green"] { --accent: #1DB954; }
+html[data-accent="blue"] { --accent: #3b82f6; }
+html[data-accent="violet"] { --accent: #8b5cf6; }
+html[data-accent="orange"] { --accent: #f59e0b; }
+
+/* Global surfaces */
+body { background: var(--bg); color: var(--text); }
+.content-body { background: var(--bg); color: var(--text); }
+
+/* Cards */
+.card { background: var(--surface); color: var(--text); border: 1px solid var(--border); box-shadow: var(--shadow); }
+.card .card-header { background: var(--surface); border-bottom: 1px solid var(--border); }
+
+/* Sidebar */
+.dlabnav { background: var(--sidebar-bg); }
+.dlabnav .metismenu > li > a { color: var(--sidebar-text); }
+.dlabnav .metismenu > li.mm-active > a,
+.dlabnav .metismenu > li > a:focus,
+.dlabnav .metismenu > li > a:hover { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--sidebar-text); border-radius: 12px; }
+
+/* Header selections */
+.header, .nav-header { background: var(--surface); border-bottom: 1px solid var(--border); }
+.navbar .nav-link, .navbar .header-info { color: var(--text); }
+
+/* Tables */
+.table { color: var(--text); }
+.table thead th { border-color: var(--border) !important; }
+.table tbody td { border-color: var(--border) !important; }
+
+/* Forms */
+.form-control, .form-select { background: var(--surface); color: var(--text); border-color: var(--border); }
+.form-control::placeholder { color: var(--muted); }
+.form-label, .form-text { color: var(--muted); }
+
+/* Buttons mapped to accent */
+.btn-primary, .bg-primary { background-color: var(--accent) !important; border-color: var(--accent) !important; }
+.btn-outline-primary { color: var(--accent) !important; border-color: var(--accent) !important; }
+.btn-outline-primary:hover { background: var(--accent) !important; color: #fff !important; }
+
+.btn-success { background-color: var(--accent) !important; border-color: var(--accent) !important; }
+.btn-success:hover { filter: brightness(0.95); }
+
+/* Helpers */
+.brand-title, .dashboard_bar { color: var(--text) !important; }
+.alert-success { background: color-mix(in srgb, var(--accent) 12%, white); color: #0b5137; border-color: color-mix(in srgb, var(--accent) 35%, white); }
+
+/* Dark mode fixes for icons/badges */
+html[data-theme="dark"] .badge.light { color: var(--text); }
+

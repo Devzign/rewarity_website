@@ -29,6 +29,27 @@ $headerTitle = $headerTitle ?? 'Dashboard';
             </div>
           </div>
                   <ul class="navbar-nav header-right">
+            <!-- Theme switcher -->
+            <li class="nav-item dropdown me-2">
+              <a class="nav-link" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="Theme">
+                <i class="las la-adjust"></i>
+              </a>
+              <div class="dropdown-menu p-3" style="min-width:220px;">
+                <div class="mb-2 fw-semibold">Theme</div>
+                <div class="d-flex gap-2 mb-3">
+                  <button class="btn btn-sm btn-outline-primary" data-set-theme="light">Light</button>
+                  <button class="btn btn-sm btn-outline-primary" data-set-theme="grey">Grey</button>
+                  <button class="btn btn-sm btn-outline-primary" data-set-theme="dark">Dark</button>
+                </div>
+                <div class="mb-2 fw-semibold">Accent</div>
+                <div class="d-flex gap-2">
+                  <button class="btn btn-sm" style="background:#1DB954; width:28px; height:28px; border-radius:50%" data-set-accent="green" title="Green"></button>
+                  <button class="btn btn-sm" style="background:#3b82f6; width:28px; height:28px; border-radius:50%" data-set-accent="blue" title="Blue"></button>
+                  <button class="btn btn-sm" style="background:#8b5cf6; width:28px; height:28px; border-radius:50%" data-set-accent="violet" title="Violet"></button>
+                  <button class="btn btn-sm" style="background:#f59e0b; width:28px; height:28px; border-radius:50%" data-set-accent="orange" title="Orange"></button>
+                </div>
+              </div>
+            </li>
             <li class="nav-item">
               <div class="input-group search-area">
                 <input type="text" class="form-control" placeholder="Search here...">

@@ -1,4 +1,5 @@
 <?php $assetBase = $assetBase ?? '/Dashborad'; ?>
+        <link rel="stylesheet" href="css/theme.css">
         <div class="footer">
             <div class="copyright">
                 <p>© Designed &amp; by <a href="#" target="_blank">Animation Coding</a> 2022</p>
@@ -17,6 +18,7 @@
     <script src="js/dlabnav-init.js"></script>
     <script src="js/demo.js"></script>
     <script src="js/styleSwitcher.js"></script>
+    <script src="js/theme.js"></script>
     <?php
     if (!empty($pageScripts)) {
         foreach ((array)$pageScripts as $scriptPath) {
