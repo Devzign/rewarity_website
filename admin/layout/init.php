@@ -15,6 +15,7 @@ $adminId = isset($_SESSION['admin_id']) ? (int)$_SESSION['admin_id'] : null;
 $adminName = (string)($_SESSION['admin'] ?? 'Admin');
 $adminEmail = '';
 $canManageRoles = false;
+$profileImageUrl = null;
 
 if ($adminId) {
   $stmt = $conn->prepare('SELECT Email, DisplayName FROM admin_users WHERE Id = ? LIMIT 1');
@@ -29,6 +30,18 @@ if ($adminId) {
           $adminName = $fetchedName;
           $_SESSION['admin'] = $adminName;
         }
+        // Resolve profile image URL if available
+        if ($adminId) {
+          $baseDir = dirname(__DIR__, 2) . '/uploads/admin_profiles';
+          foreach (['jpg','jpeg','png','webp'] as $ext) {
+            $p = $baseDir . '/' . $adminId . '.' . $ext;
+            if (is_file($p)) {
+              $profileImageUrl = '/uploads/admin_profiles/' . $adminId . '.' . $ext . '?v=' . filemtime($p);
+              break;
+            }
+          }
+        }
+
         $nameForCheck = strtolower($adminName);
         if (str_contains($nameForCheck, 'super admin') || str_contains($nameForCheck, 'admin')) {
           $canManageRoles = true;

@@ -21,6 +21,9 @@ vendor/bin/
 composer.lock
 package-lock.json
 
+# Do not overwrite user uploads on deploy
+uploads/
+
 # IDE
 .idea/
 .vscode/
