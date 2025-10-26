@@ -1,26 +1,27 @@
 // Early/late boot glue: manages page loader timing and data-load coordination
 (function(){
   var html = document.documentElement;
-  // On first parse (head inline script should already set theme + is-loading). Fallback here.
-  if (!html.classList.contains('is-loading')) { html.classList.add('is-loading'); }
+  var timer = null;
+  var shown = false;
 
-  var waitingForData = false;
-  var done = false;
-
-  function hideLoader(){
-    if (done) return; done = true;
-    html.classList.remove('is-loading');
+  function showLoaderDelayed() {
+    if (timer) return;
+    // Only show if loading lasts > 250ms (prevents flash on fast pages)
+    timer = setTimeout(function(){
+      html.classList.add('is-loading');
+      shown = true;
+    }, 250);
+  }
+  function hideLoader() {
+    if (timer) { clearTimeout(timer); timer = null; }
+    if (shown) { html.classList.remove('is-loading'); shown = false; }
   }
 
-  window.addEventListener('rewarity:data-loading', function(){ waitingForData = true; });
-  window.addEventListener('rewarity:data-ready', function(){ hideLoader(); });
+  // App pages that fetch data should announce load states
+  window.addEventListener('rewarity:data-loading', showLoaderDelayed);
+  window.addEventListener('rewarity:data-ready', hideLoader);
 
-  // If no data-loading announced, hide on DOM ready
-  document.addEventListener('DOMContentLoaded', function(){
-    if (!waitingForData) hideLoader();
-  });
-
-  // Safety timeout
-  setTimeout(hideLoader, 6000);
+  // Fallback: if DOM itself takes long, show after 600ms then hide on ready
+  var domTimer = setTimeout(function(){ html.classList.add('is-loading'); shown = true; }, 600);
+  window.addEventListener('load', function(){ clearTimeout(domTimer); hideLoader(); });
 })();
-
