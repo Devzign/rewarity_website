@@ -566,7 +566,19 @@ function render_address(array $row): string
     </style>
 </head>
 <body>
-    <?php
+  <div id="preloader">
+    <div class="waviy">
+       <span style="--i:1">R</span>
+       <span style="--i:2">E</span>
+       <span style="--i:3">W</span>
+       <span style="--i:4">A</span>
+       <span style="--i:5">R</span>
+       <span style="--i:6">I</span>
+       <span style="--i:7">T</span>
+       <span style="--i:8">Y</span>
+    </div>
+  </div>
+  <?php
   require __DIR__ . '/layout/header.php';
   require __DIR__ . '/layout/sidebar.php';
 ?>
