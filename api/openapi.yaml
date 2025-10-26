@@ -3,11 +3,13 @@ info:
   title: Rewarity Admin API
   version: 1.0.0
   description: |
-    Admin-facing APIs for products and orders.
+    Admin-facing APIs for products, categories and orders.
     
-    Authentication: Use Bearer token or an active admin session.
+    Authentication: Use Bearer token, API key, or an active admin session.
     
     - Bearer token header: `Authorization: Bearer <token>`
+    - OR API key header: `X-API-Key: <token>`
+    - OR query param (fallback): `?token=<token>`
     - Configure token via environment variable `API_BEARER_TOKEN` (defaults to `dev-token`).
 servers:
   - url: /
@@ -16,6 +18,7 @@ servers:
     description: PHP built-in server
 security:
   - bearerAuth: []
+  - apiKeyAuth: []
 paths:
   /api/login.php:
     post:
@@ -537,6 +540,10 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
   responses:
     UnauthorizedError:
       description: Missing or invalid Bearer token

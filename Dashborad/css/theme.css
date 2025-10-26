@@ -85,6 +85,15 @@ html.is-loading .page-loader { opacity: 1; visibility: visible; }
 .dlabnav .metismenu > li > a:focus,
 .dlabnav .metismenu > li > a:hover { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--sidebar-text); border-radius: 12px; }
 
+/* Ensure icons stay visible on active/hover items regardless of accent */
+.dlabnav .metismenu > li.mm-active > a { color: var(--sidebar-text) !important; }
+.dlabnav .metismenu > li.mm-active > a i,
+.dlabnav .metismenu > li.mm-active > a svg,
+.dlabnav .metismenu > li.mm-active > a g [fill],
+.dlabnav .metismenu > li.mm-active > a path { color: var(--sidebar-text) !important; fill: var(--sidebar-text) !important; }
+.dlabnav .metismenu > li:hover > a i,
+.dlabnav .metismenu > li:hover > a svg { color: var(--sidebar-text) !important; }
+
 /* Header selections */
 .header, .nav-header { background: var(--surface); border-bottom: 1px solid var(--border); }
 .navbar .nav-link, .navbar .header-info { color: var(--text); }

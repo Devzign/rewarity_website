@@ -4,7 +4,7 @@ declare(strict_types=1);
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
-header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+header('Access-Control-Allow-Methods: GET, POST, DELETE, OPTIONS');
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS') {
   http_response_code(204);
@@ -62,6 +62,18 @@ function get_bearer_token(): ?string
 }
 
 /**
+ * Extract API key from common places: Bearer token, X-API-Key header or token query param.
+ */
+function get_api_token(): ?string
+{
+  $bearer = get_bearer_token();
+  if ($bearer) return $bearer;
+  if (!empty($_SERVER['HTTP_X_API_KEY'])) return trim((string)$_SERVER['HTTP_X_API_KEY']);
+  if (!empty($_GET['token'])) return trim((string)$_GET['token']);
+  return null;
+}
+
+/**
  * Validate incoming auth: allow valid Bearer token OR an active admin session.
  * Token is read from env var API_BEARER_TOKEN (fallback: 'dev-token').
  */
@@ -78,7 +90,7 @@ function require_auth(): void
   }
 
   $expected = getenv('API_BEARER_TOKEN') ?: 'dev-token';
-  $provided = get_bearer_token();
+  $provided = get_api_token();
   if ($provided && hash_equals($expected, $provided)) {
     return;
   }

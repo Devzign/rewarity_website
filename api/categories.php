@@ -10,10 +10,24 @@ require_auth();
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
 function ensure_category_table(mysqli $conn): void {
-  // No-op here; migrations handle schema. Optionally check existence.
+  try {
+    $sql = "CREATE TABLE IF NOT EXISTS `category_master` (
+      `Id` INT NOT NULL,
+      `CategoryName` VARCHAR(80) NOT NULL,
+      `Description` VARCHAR(255) NULL,
+      `IsActive` TINYINT(1) NOT NULL DEFAULT 1,
+      `CreatedOn` DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
+      `UpdatedOn` DATETIME NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (`Id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+    $conn->query($sql);
+  } catch (mysqli_sql_exception $e) {
+    // Fallback: ignore if we cannot create (permission) — callers will see actual INSERT/SELECT errors.
+  }
 }
 
 if ($method === 'GET') {
+    ensure_category_table($conn);
   try {
     $rows = [];
     $res = $conn->query('SELECT Id, CategoryName, Description, IsActive, CreatedOn FROM category_master ORDER BY CategoryName');
@@ -35,9 +49,11 @@ if ($method === 'GET') {
 }
 
 if ($method === 'POST') {
+    ensure_category_table($conn);
   $payload = [];
   $isMultipart = isset($_SERVER['CONTENT_TYPE']) && stripos($_SERVER['CONTENT_TYPE'], 'multipart/form-data') !== false;
   if ($isMultipart) {
+    $payload['id'] = isset($_POST['id']) && $_POST['id'] !== '' ? (int)$_POST['id'] : null;
     $payload['name'] = trim((string)($_POST['name'] ?? ''));
     $payload['description'] = isset($_POST['description']) ? trim((string)$_POST['description']) : null;
     $payload['is_active'] = isset($_POST['is_active']) ? (int)($_POST['is_active'] === 'on' ? 1 : $_POST['is_active']) : 1;
@@ -78,6 +94,7 @@ if ($method === 'POST') {
 }
 
 if ($method === 'DELETE') {
+  ensure_category_table($conn);
   parse_str($_SERVER['QUERY_STRING'] ?? '', $qs);
   $id = isset($qs['id']) ? (int)$qs['id'] : 0;
   if ($id <= 0) { http_response_code(422); echo json_encode(['error' => 'id is required']); exit; }
@@ -96,4 +113,3 @@ if ($method === 'DELETE') {
 
 http_response_code(405);
 echo json_encode(['error' => 'Method not allowed']);
-
