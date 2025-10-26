@@ -48,7 +48,7 @@ $stmt = $conn->prepare(
   $typeCode = strtoupper((string)($user['UserType'] ?? ''));
   $adminTypes = ['SUPER_ADMIN','ADMIN','EMPLOYEE'];
   if (!in_array($typeCode, $adminTypes, true)) {
-    json_response(403, ['error' => 'Use mobile OTP login for this user type.']);
+    json_response(403, ['error' => 'Use email OTP login for this user type.']);
   }
 
   if (empty($user['PasswordHash'])) {

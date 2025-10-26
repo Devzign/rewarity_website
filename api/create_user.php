@@ -39,22 +39,49 @@ try {
     $cityId = isset($addressData['city_id']) ? (int)$addressData['city_id'] : null;
     $stateId = isset($addressData['state_id']) ? (int)$addressData['state_id'] : null;
     $countryId = isset($addressData['country_id']) ? (int)$addressData['country_id'] : null;
+    // Optional coordinates
+    $latitude = isset($addressData['latitude']) && $addressData['latitude'] !== '' ? (float)$addressData['latitude'] : null;
+    $longitude = isset($addressData['longitude']) && $addressData['longitude'] !== '' ? (float)$addressData['longitude'] : null;
+    // Detect optional Latitude/Longitude columns on address_master
+    $hasLat = false; $hasLng = false;
+    try {
+      $colLat = $conn->query("SHOW COLUMNS FROM address_master LIKE 'Latitude'");
+      $hasLat = ($colLat && $colLat->num_rows > 0);
+      $colLat?->free();
+      $colLng = $conn->query("SHOW COLUMNS FROM address_master LIKE 'Longitude'");
+      $hasLng = ($colLng && $colLng->num_rows > 0);
+      $colLng?->free();
+    } catch (mysqli_sql_exception $e) {
+      $hasLat = $hasLng = false;
+    }
 
-    $addressStmt = $conn->prepare(
-      'INSERT INTO address_master (Id, Address1, Address2, CityId, StateId, CountryId)
-       VALUES (?, ?, ?, ?, ?, ?)'
-    );
-    $addressStmt->bind_param(
-      'issiii',
-      $addressId,
-      $address1,
-      $address2,
-      $cityId,
-      $stateId,
-      $countryId
-    );
-    $addressStmt->execute();
-    $addressStmt->close();
+    if ($hasLat || $hasLng) {
+      $sql = 'INSERT INTO address_master (Id, Address1, Address2, CityId, StateId, CountryId';
+      $place = '?, ?, ?, ?, ?, ?';
+      $types = 'issiii';
+      $sqlVals = ') VALUES (' . $place;
+      if ($hasLat) { $sql .= ', Latitude'; $sqlVals .= ', ?'; $types .= 'd'; }
+      if ($hasLng) { $sql .= ', Longitude'; $sqlVals .= ', ?'; $types .= 'd'; }
+      $sql .= $sqlVals . ')';
+      $addressStmt = $conn->prepare($sql);
+      if ($hasLat && $hasLng) {
+        $addressStmt->bind_param($types, $addressId, $address1, $address2, $cityId, $stateId, $countryId, $latitude, $longitude);
+      } elseif ($hasLat && !$hasLng) {
+        $addressStmt->bind_param($types, $addressId, $address1, $address2, $cityId, $stateId, $countryId, $latitude);
+      } else { // !$hasLat && $hasLng
+        $addressStmt->bind_param($types, $addressId, $address1, $address2, $cityId, $stateId, $countryId, $longitude);
+      }
+      $addressStmt->execute();
+      $addressStmt->close();
+    } else {
+      $addressStmt = $conn->prepare(
+        'INSERT INTO address_master (Id, Address1, Address2, CityId, StateId, CountryId)
+         VALUES (?, ?, ?, ?, ?, ?)'
+      );
+      $addressStmt->bind_param('issiii', $addressId, $address1, $address2, $cityId, $stateId, $countryId);
+      $addressStmt->execute();
+      $addressStmt->close();
+    }
   }
 
   $userId = next_numeric_id($conn, 'user_master');

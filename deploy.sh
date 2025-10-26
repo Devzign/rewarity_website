@@ -12,12 +12,12 @@ set -euo pipefail
 #   DEPLOY_PATH="user@host:/abs/remote/dir"
 # ==========================================================
 
-HOST="82.112.232.250"
+HOST="217.21.95.207"
 PORT="65002"
-USER="u551475123"
+USER="u788248317"
 
-# ✅ Correct absolute path (replace ~ with full /home path)
-REMOTE_DIR="${DEPLOY_REMOTE_DIR:-/home/u551475123/domains/devzign.com/public_html/reward/public/}"
+# ✅ Hostinger primary domain public_html (as shown in your File Manager)
+REMOTE_DIR="${DEPLOY_REMOTE_DIR:-/home/u788248317/public_html/}"
 
 # Optional override via DEPLOY_PATH (e.g., user@host:/path)
 if [[ -n "${DEPLOY_PATH:-}" ]]; then
@@ -63,13 +63,16 @@ fi
 EXCLUDE_FILE=".deployignore"
 RSYNC_FLAGS=(-avz --delete --human-readable --progress)
 
+# Protect server-only config files from deletion/overwrite
+RSYNC_FLAGS+=(--filter='P includes/env.php' --filter='P includes/env.local.php')
+
 if [[ -f "$EXCLUDE_FILE" ]]; then
   RSYNC_FLAGS+=(--exclude-from="$EXCLUDE_FILE")
 else
   echo -e "\033[0;33m⚠️  Warning:\033[0m .deployignore not found; proceeding without excludes."
 fi
 
-SSH_CMD=(ssh -p "$PORT")
+SSH_CMD=(ssh -p "$PORT" -o StrictHostKeyChecking=no)
 
 # -------------------------------------
 # Deploy Execution

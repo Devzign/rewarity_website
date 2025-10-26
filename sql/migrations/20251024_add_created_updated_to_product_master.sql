@@ -1,0 +1,5 @@
+-- Add CreatedOn and UpdatedOn to product_master
+ALTER TABLE `product_master`
+  ADD COLUMN `CreatedOn` DATETIME NULL DEFAULT CURRENT_TIMESTAMP AFTER `CurrentStock`,
+  ADD COLUMN `UpdatedOn` DATETIME NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER `CreatedOn`;
+

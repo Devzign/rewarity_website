@@ -83,6 +83,15 @@ try {
   $errorMessage = 'Unable to load user types: ' . $exception->getMessage();
 }
 
+// Detect the numeric id for DEALER type, if present
+$dealerTypeId = null;
+foreach ($userTypes as $ut) {
+  if (strtoupper((string)($ut['typename'] ?? '')) === 'DEALER') {
+    $dealerTypeId = (int)$ut['id'];
+    break;
+  }
+}
+
 /**
  * Convert canonical user type code (e.g., SUPER_ADMIN) to display label (e.g., Super Admin).
  */
@@ -104,6 +113,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'creat
   $formData['is_active'] = isset($_POST['is_active']) ? '1' : '0';
   $formData['address1'] = trim((string)($_POST['address1'] ?? ''));
   $formData['address2'] = trim((string)($_POST['address2'] ?? ''));
+  // Optional coordinates (used for Dealer via map picker)
+  $latitude = isset($_POST['latitude']) && $_POST['latitude'] !== '' ? (float)$_POST['latitude'] : null;
+  $longitude = isset($_POST['longitude']) && $_POST['longitude'] !== '' ? (float)$_POST['longitude'] : null;
   $cityId = isset($_POST['city_id']) && $_POST['city_id'] !== '' ? (int)$_POST['city_id'] : null;
   $stateId = isset($_POST['state_id']) && $_POST['state_id'] !== '' ? (int)$_POST['state_id'] : null;
   $countryId = isset($_POST['country_id']) && $_POST['country_id'] !== '' ? (int)$_POST['country_id'] : null;
@@ -116,12 +128,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'creat
     $formErrors['email'] = 'A valid email is required.';
   }
 
-  if ($formData['password'] === '' || strlen($formData['password']) < 6) {
-    $formErrors['password'] = 'Password must be at least 6 characters long.';
-  }
-
-  if ($formData['password'] !== $formData['confirm_password']) {
-    $formErrors['confirm_password'] = 'Passwords do not match.';
+  // Validate password only when NOT creating a Dealer
+  $selectedTypeId = $formData['user_type_id'] !== '' ? (int)$formData['user_type_id'] : null;
+  $isDealerSelected = ($dealerTypeId !== null && $selectedTypeId === $dealerTypeId);
+  if (!$isDealerSelected) {
+    if ($formData['password'] === '' || strlen($formData['password']) < 6) {
+      $formErrors['password'] = 'Password must be at least 6 characters long.';
+    }
+    if ($formData['password'] !== $formData['confirm_password']) {
+      $formErrors['confirm_password'] = 'Passwords do not match.';
+    }
+  } else {
+    // For Dealers, ignore any provided passwords
+    $formData['password'] = '';
+    $formData['confirm_password'] = '';
   }
 
   if ($formData['user_type_id'] === '') {
@@ -162,25 +182,89 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'creat
       $userId = next_numeric_id($conn, 'user_master');
       $addressId = null;
 
-      if ($formData['address1'] !== '' || $formData['address2'] !== '' || $cityId || $stateId || $countryId) {
+      // Create address record if we have any address lines, any region IDs, or coordinates
+      if ($formData['address1'] !== '' || $formData['address2'] !== '' || $cityId || $stateId || $countryId || $latitude !== null || $longitude !== null) {
         $addressId = next_numeric_id($conn, 'address_master');
-        $addressStmt = $conn->prepare(
-          'INSERT INTO address_master (Id, Address1, Address2, CityId, StateId, CountryId) VALUES (?, ?, ?, ?, ?, ?)'
-        );
-        $addressLine1Param = $formData['address1'] !== '' ? $formData['address1'] : null;
-        $addressLine2Param = $formData['address2'] !== '' ? $formData['address2'] : null;
-        $cityIdParam = $cityId ?? null;
-        $stateIdParam = $stateId ?? null;
-        $countryIdParam = $countryId ?? null;
-        $addressStmt->bind_param(
-          'issiii',
-          $addressId,
-          $addressLine1Param,
-          $addressLine2Param,
-          $cityIdParam,
-          $stateIdParam,
-          $countryIdParam
-        );
+        // Detect optional latitude/longitude columns in address_master
+        $hasLat = false; $hasLng = false;
+        try {
+          $colLat = $conn->query("SHOW COLUMNS FROM address_master LIKE 'Latitude'");
+          $hasLat = ($colLat && $colLat->num_rows > 0);
+          $colLat?->free();
+          $colLng = $conn->query("SHOW COLUMNS FROM address_master LIKE 'Longitude'");
+          $hasLng = ($colLng && $colLng->num_rows > 0);
+          $colLng?->free();
+        } catch (mysqli_sql_exception $e) {
+          $hasLat = $hasLng = false;
+        }
+
+        if ($hasLat || $hasLng) {
+          // Build insert including Latitude/Longitude when columns exist
+          $sql = 'INSERT INTO address_master (Id, Address1, Address2, CityId, StateId, CountryId';
+          $place = '?, ?, ?, ?, ?, ?';
+          $types = 'issiii';
+          $params = [];
+          $sqlVals = ') VALUES (' . $place;
+          if ($hasLat) { $sql .= ', Latitude'; $sqlVals .= ', ?'; $types .= 'd'; }
+          if ($hasLng) { $sql .= ', Longitude'; $sqlVals .= ', ?'; $types .= 'd'; }
+          $sql .= $sqlVals . ')';
+          $addressStmt = $conn->prepare($sql);
+          // Prepare bind parameters as variables (bind_param needs references)
+          $addr1Param = ($formData['address1'] !== '' ? $formData['address1'] : null);
+          $addr2Param = ($formData['address2'] !== '' ? $formData['address2'] : null);
+          $cityIdParam = ($cityId ?? null);
+          $stateIdParam = ($stateId ?? null);
+          $countryIdParam = ($countryId ?? null);
+          $latParam = $latitude;
+          $lngParam = $longitude;
+          // Bind dynamically
+          if ($hasLat && $hasLng) {
+            $addressStmt->bind_param(
+              $types,
+              $addressId,
+              $addr1Param,
+              $addr2Param,
+              $cityIdParam,
+              $stateIdParam,
+              $countryIdParam,
+              $latParam,
+              $lngParam
+            );
+          } elseif ($hasLat && !$hasLng) {
+            $addressStmt->bind_param(
+              $types,
+              $addressId,
+              $addr1Param,
+              $addr2Param,
+              $cityIdParam,
+              $stateIdParam,
+              $countryIdParam,
+              $latParam
+            );
+          } elseif (!$hasLat && $hasLng) {
+            $addressStmt->bind_param(
+              $types,
+              $addressId,
+              $addr1Param,
+              $addr2Param,
+              $cityIdParam,
+              $stateIdParam,
+              $countryIdParam,
+              $lngParam
+            );
+          }
+        } else {
+          // No lat/lng columns: fall back to original insert
+          $addressStmt = $conn->prepare(
+            'INSERT INTO address_master (Id, Address1, Address2, CityId, StateId, CountryId) VALUES (?, ?, ?, ?, ?, ?)'
+          );
+          $addr1Param = ($formData['address1'] !== '' ? $formData['address1'] : null);
+          $addr2Param = ($formData['address2'] !== '' ? $formData['address2'] : null);
+          $cityIdParam = ($cityId ?? null);
+          $stateIdParam = ($stateId ?? null);
+          $countryIdParam = ($countryId ?? null);
+          $addressStmt->bind_param('issiii', $addressId, $addr1Param, $addr2Param, $cityIdParam, $stateIdParam, $countryIdParam);
+        }
         $addressStmt->execute();
         $addressStmt->close();
       }
@@ -384,6 +468,8 @@ function render_address(array $row): string
     <link href="vendor/jquery-nice-select/css/nice-select.css" rel="stylesheet">
     <link rel="stylesheet" href="vendor/nouislider/nouislider.min.css">
     <link href="css/style.css" rel="stylesheet">
+    <!-- Optional map CSS (Leaflet) for Dealer location picker -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <style>
       /* Uniform control sizes */
       .create-user-panel .form-control,
@@ -412,6 +498,9 @@ function render_address(array $row): string
       .create-user-panel label.form-label { color: #6b7280; font-weight: 500; }
       .create-user-panel .row.g-3 > [class^="col-"] { display: flex; flex-direction: column; }
       .create-user-panel .btn { height: 44px; padding: 0 18px; }
+      .dealer-only { display: none; }
+      .map-container { height: 360px; border-radius: 8px; overflow: hidden; }
+      .map-search { display: flex; gap: 8px; margin-bottom: 10px; }
       .users-filter-card {
         background: #ffffff;
         border-radius: 12px;
@@ -515,17 +604,17 @@ function render_address(array $row): string
                             <label class="form-label">Email<span class="text-danger">*</span></label>
                             <input type="email" name="email" class="form-control" value="<?php echo htmlspecialchars($formData['email']); ?>" required>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-6 password-fields">
                             <label class="form-label">Password<span class="text-danger">*</span></label>
                             <input type="password" name="password" class="form-control" required>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-6 password-fields">
                             <label class="form-label">Confirm Password<span class="text-danger">*</span></label>
                             <input type="password" name="confirm_password" class="form-control" required>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">User Type<span class="text-danger">*</span></label>
-                            <select name="user_type_id" class="form-select" required>
+                            <select name="user_type_id" id="userTypeSelect" class="form-select" required data-dealer-id="<?php echo $dealerTypeId !== null ? (int)$dealerTypeId : ''; ?>">
                                 <option value="">Select user type</option>
                                 <?php foreach ($userTypes as $type): ?>
                                   <?php $label = display_user_type_label($type['typename']); ?>
@@ -537,7 +626,7 @@ function render_address(array $row): string
                             <label class="form-label">Mobile</label>
                             <input type="text" name="mobile" class="form-control" value="<?php echo htmlspecialchars($formData['mobile']); ?>" placeholder="e.g. 9876543210">
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-4 address-fields">
                             <label class="form-label">Pincode</label>
                             <input type="text" name="pincode" id="pincodeInput" class="form-control" value="<?php echo htmlspecialchars($formData['pincode']); ?>" placeholder="e.g. 110044" maxlength="10">
                         </div>
@@ -548,28 +637,43 @@ function render_address(array $row): string
                               <label class="form-check-label" for="isActiveSwitch">Active</label>
                             </div>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-6 address-fields">
                             <label class="form-label">Address Line 1</label>
                             <input type="text" name="address1" class="form-control" value="<?php echo htmlspecialchars($formData['address1']); ?>">
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-6 address-fields">
                             <label class="form-label">Address Line 2</label>
                             <input type="text" name="address2" class="form-control" value="<?php echo htmlspecialchars($formData['address2']); ?>">
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-6 address-fields">
                             <label class="form-label">City</label>
                             <input type="text" id="cityName" class="form-control readonly-field" value="" placeholder="Auto from pincode" readonly>
                             <input type="hidden" name="city_id" id="cityId" value="<?php echo isset($cityId) && $cityId !== null ? (int)$cityId : ''; ?>">
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-6 address-fields">
                             <label class="form-label">State</label>
                             <input type="text" id="stateName" class="form-control readonly-field" value="" placeholder="Auto from pincode" readonly>
                             <input type="hidden" name="state_id" id="stateId" value="<?php echo isset($stateId) && $stateId !== null ? (int)$stateId : ''; ?>">
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-6 address-fields">
                             <label class="form-label">Country</label>
                             <input type="text" id="countryName" class="form-control readonly-field" value="" placeholder="Auto from pincode" readonly>
                             <input type="hidden" name="country_id" id="countryId" value="<?php echo isset($countryId) && $countryId !== null ? (int)$countryId : ''; ?>">
+                        </div>
+
+                        <!-- Dealer-only: Location picker via map -->
+                        <div class="col-md-6 dealer-only">
+                            <label class="form-label">Latitude</label>
+                            <input type="text" id="latDisplay" class="form-control readonly-field" value="" placeholder="Pick from map" readonly>
+                            <input type="hidden" name="latitude" id="latitude" value="">
+                        </div>
+                        <div class="col-md-6 dealer-only">
+                            <label class="form-label">Longitude</label>
+                            <input type="text" id="lngDisplay" class="form-control readonly-field" value="" placeholder="Pick from map" readonly>
+                            <input type="hidden" name="longitude" id="longitude" value="">
+                        </div>
+                        <div class="col-12 dealer-only d-flex gap-2">
+                            <button type="button" class="btn btn-outline-primary" id="openMapBtn">Pick Location on Map</button>
                         </div>
                         <div class="col-12 text-end">
                             <button type="submit" class="btn btn-primary">Save User</button>
@@ -711,6 +815,31 @@ function render_address(array $row): string
           </div>
         </div>
 
+        <!-- Map modal for Dealer location -->
+        <div class="modal fade" id="mapPickerModal" tabindex="-1" aria-hidden="true">
+          <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title">Pick Dealer Location</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                <div class="map-search">
+                  <input type="text" id="mapPincodeSearch" class="form-control" placeholder="Enter pincode to center map">
+                  <button type="button" class="btn btn-light border" id="mapSearchBtn">Go</button>
+                </div>
+                <div id="dealerMap" class="map-container"></div>
+                <div class="mt-2 small text-muted">Click on map to set location. Drag the marker to adjust.</div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="useLocationBtn" data-bs-dismiss="modal">Use this location</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
         <script>
           document.addEventListener('DOMContentLoaded', function () {
             const toggleButton = document.getElementById('toggleUserForm');
@@ -719,6 +848,40 @@ function render_address(array $row): string
               toggleButton.addEventListener('click', function () {
                 panel.classList.toggle('active');
               });
+            }
+
+            // Toggle address vs dealer-only map fields based on user type
+            const userTypeSelect = document.getElementById('userTypeSelect');
+            const dealerId = parseInt(userTypeSelect?.dataset?.dealerId || '');
+            function toggleDealerFields(){
+              const isDealer = userTypeSelect && dealerId && (parseInt(userTypeSelect.value || '0') === dealerId);
+              document.querySelectorAll('.address-fields').forEach(el => el.style.display = isDealer ? 'none' : 'block');
+              document.querySelectorAll('.dealer-only').forEach(el => el.style.display = isDealer ? 'block' : 'none');
+              // Toggle password fields for Dealer (hide + remove required)
+              document.querySelectorAll('.password-fields').forEach(el => el.style.display = isDealer ? 'none' : 'block');
+              document.querySelectorAll('.password-fields input').forEach(inp => {
+                if (isDealer) {
+                  inp.removeAttribute('required');
+                  inp.value = '';
+                } else {
+                  inp.setAttribute('required','required');
+                }
+              });
+              if (!isDealer) {
+                // Clear coordinates if not dealer
+                const lat = document.getElementById('latitude');
+                const lng = document.getElementById('longitude');
+                const latD = document.getElementById('latDisplay');
+                const lngD = document.getElementById('lngDisplay');
+                if (lat) lat.value = '';
+                if (lng) lng.value = '';
+                if (latD) latD.value = '';
+                if (lngD) lngD.value = '';
+              }
+            }
+            if (userTypeSelect) {
+              userTypeSelect.addEventListener('change', toggleDealerFields);
+              toggleDealerFields(); // initial
             }
 
             // Pincode auto-resolve
@@ -758,6 +921,75 @@ function render_address(array $row): string
                 }
               });
             }
+
+            // Dealer map picker (Leaflet)
+            let map, marker;
+            const mapModalEl = document.getElementById('mapPickerModal');
+            const openMapBtn = document.getElementById('openMapBtn');
+            const useLocationBtn = document.getElementById('useLocationBtn');
+            const mapSearchBtn = document.getElementById('mapSearchBtn');
+            const mapSearchInput = document.getElementById('mapPincodeSearch');
+            const latField = document.getElementById('latitude');
+            const lngField = document.getElementById('longitude');
+            const latDisp = document.getElementById('latDisplay');
+            const lngDisp = document.getElementById('lngDisplay');
+            function initMap(){
+              if (map) { setTimeout(()=> map.invalidateSize(), 150); return; }
+              map = L.map('dealerMap').setView([20.5937, 78.9629], 5); // India center
+              L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; OpenStreetMap'
+              }).addTo(map);
+              function setMarker(lat, lng){
+                if (!isFinite(lat) || !isFinite(lng)) return;
+                if (!marker) {
+                  marker = L.marker([lat, lng], {draggable:true}).addTo(map);
+                  marker.on('dragend', ()=>{
+                    const p = marker.getLatLng();
+                    latDisp.value = latField.value = p.lat.toFixed(6);
+                    lngDisp.value = lngField.value = p.lng.toFixed(6);
+                  });
+                } else {
+                  marker.setLatLng([lat, lng]);
+                }
+                map.setView([lat, lng], 15);
+                latDisp.value = latField.value = lat.toFixed(6);
+                lngDisp.value = lngField.value = lng.toFixed(6);
+              }
+              map.on('click', (e)=> setMarker(e.latlng.lat, e.latlng.lng));
+              // If we already have values, show them
+              const exLat = parseFloat(latField.value || '');
+              const exLng = parseFloat(lngField.value || '');
+              if (isFinite(exLat) && isFinite(exLng)) setMarker(exLat, exLng);
+            }
+            // Bootstrap modal events
+            if (openMapBtn && mapModalEl) {
+              openMapBtn.addEventListener('click', ()=>{
+                const modal = (typeof bootstrap !== 'undefined') ? bootstrap.Modal.getOrCreateInstance(mapModalEl) : null;
+                modal?.show();
+              });
+            }
+            mapModalEl?.addEventListener('shown.bs.modal', initMap);
+            useLocationBtn?.addEventListener('click', ()=>{ /* values already set via marker */ });
+            mapSearchBtn?.addEventListener('click', async ()=>{
+              const q = (mapSearchInput?.value || '').trim();
+              if (!q) return;
+              try {
+                // Use Nominatim to geocode pincode within India
+                const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&country=India&postalcode=${encodeURIComponent(q)}`;
+                const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+                const arr = await res.json();
+                if (Array.isArray(arr) && arr[0]) {
+                  const lat = parseFloat(arr[0].lat), lon = parseFloat(arr[0].lon);
+                  if (isFinite(lat) && isFinite(lon)) {
+                    initMap();
+                    map.setView([lat, lon], 13);
+                  }
+                }
+              } catch (err) {
+                // ignore
+              }
+            });
 
             // Users actions
             const userModalEl = document.getElementById('userModal');

@@ -1,0 +1,89 @@
+name: Deploy to Hostinger
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install rsync and sshpass
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rsync sshpass
+
+      - name: Ensure server env.php exists (one-time)
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PASS: ${{ secrets.SSH_PASS }}
+          REMOTE_DIR: ${{ secrets.REMOTE_DIR }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASS: ${{ secrets.DB_PASS }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+        run: |
+          set -euo pipefail
+          : "${SSH_HOST:?} ${SSH_PORT:?} ${SSH_USER:?} ${SSH_PASS:?} ${REMOTE_DIR:?}"
+          : "${DB_USER:?} ${DB_PASS:?} ${DB_NAME:?}"
+
+          # Prepare local env.php from secrets
+          cat > env.php <<PHP
+<?php
+$host = '${DB_HOST:-localhost}';
+$user = '${DB_USER}';
+$pass = '${DB_PASS}';
+$db   = '${DB_NAME}';
+PHP
+
+          # Ensure includes dir exists
+          sshpass -p "$SSH_PASS" \
+            ssh -o StrictHostKeyChecking=no -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" \
+            "mkdir -p '$REMOTE_DIR/includes'"
+
+          # Upload env.php only if missing
+          if sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" test -f "$REMOTE_DIR/includes/env.php"; then
+            echo "env.php already exists on server; leaving it unchanged."
+          else
+            echo "Uploading initial env.php to server."
+            sshpass -p "$SSH_PASS" \
+              scp -P "$SSH_PORT" -o StrictHostKeyChecking=no env.php "$SSH_USER@$SSH_HOST:$REMOTE_DIR/includes/env.php"
+            # Set restrictive permissions
+            sshpass -p "$SSH_PASS" \
+              ssh -o StrictHostKeyChecking=no -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" \
+              "chmod 640 '$REMOTE_DIR/includes/env.php'"
+          fi
+          rm -f env.php
+
+      - name: Deploy via rsync over SSH
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PASS: ${{ secrets.SSH_PASS }}
+          REMOTE_DIR: ${{ secrets.REMOTE_DIR }}
+        run: |
+          set -euo pipefail
+          : "${SSH_HOST:?} ${SSH_PORT:?} ${SSH_USER:?} ${SSH_PASS:?} ${REMOTE_DIR:?}"
+          echo "Target: ${SSH_USER}@${SSH_HOST}:${SSH_PORT} -> ${REMOTE_DIR}"
+
+          # Ensure remote directory exists
+          sshpass -p "$SSH_PASS" \
+            ssh -o StrictHostKeyChecking=no -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" \
+            "mkdir -p '$REMOTE_DIR'"
+
+          # Run rsync with .deployignore and protect server env files
+          sshpass -p "$SSH_PASS" \
+            rsync -avz --delete --human-readable --progress \
+              --exclude-from=.deployignore \
+              --filter='P includes/env.php' --filter='P includes/env.local.php' \
+              -e "ssh -o StrictHostKeyChecking=no -p $SSH_PORT" \
+              ./ "$SSH_USER@$SSH_HOST:$REMOTE_DIR"
+
+          echo "✅ Deployment complete"

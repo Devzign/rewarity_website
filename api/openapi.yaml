@@ -73,6 +73,53 @@ paths:
         '422': { description: Validation error }
         '500': { description: Server error }
 
+  /api/send_email_otp.php:
+    post:
+      operationId: send_email_otp
+      tags: [Auth]
+      summary: Send login OTP to email (Dealer)
+      description: Triggers an email OTP for Dealer email login. No Bearer token required.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+      responses:
+        '200': { description: OTP sent if email exists }
+        '403': { description: Not allowed for this type }
+        '422': { description: Validation error }
+        '500': { description: Server error }
+
+  /api/login_email.php:
+    post:
+      operationId: login_email
+      tags: [Auth]
+      summary: Login using email + OTP (Dealer)
+      description: Verifies email OTP and logs in Dealer. No Bearer token required.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, otp]
+              properties:
+                email: { type: string, format: email }
+                otp: { type: string }
+      responses:
+        '200': { description: Login successful }
+        '401': { description: Invalid code or user }
+        '403': { description: Not allowed for this type }
+        '410': { description: Code expired }
+        '422': { description: Validation error }
+        '500': { description: Server error }
+
   /api/register.php:
     post:
       operationId: register_user
@@ -233,6 +280,55 @@ paths:
                   order_number: { type: string }
         '401': { $ref: '#/components/responses/UnauthorizedError' }
         '422': { description: Validation error }
+
+  /api/categories.php:
+    get:
+      operationId: list_categories
+      tags: [Categories]
+      summary: List categories
+      responses:
+        '200':
+          description: Categories
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  categories:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Category'
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+    post:
+      operationId: upsert_category
+      tags: [Categories]
+      summary: Create or update category
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryUpsert'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CategoryUpsert'
+      responses:
+        '200': { description: Saved }
+        '422': { description: Validation error }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+    delete:
+      operationId: delete_category
+      tags: [Categories]
+      summary: Delete category
+      parameters:
+        - in: query
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Deleted }
+        '422': { description: Validation error }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
 
   /api/order_support.php:
     get:
@@ -504,11 +600,15 @@ components:
         id: { type: integer }
         product_name: { type: string }
         product_code: { type: string }
-        unit_price: { type: number }
+        selling_price: { type: number }
+        purchase_price: { type: number }
         current_stock: { type: number }
         is_active: { type: boolean }
         start_date: { type: string, format: date, nullable: true }
-        created_on: { type: string, format: date-time, nullable: true }
+        created_on: { type: string, format: date, nullable: true }
+        updated_on: { type: string, format: date, nullable: true }
+        image_url: { type: string, nullable: true }
+        category_id: { type: integer, nullable: true }
     ProductSimple:
       type: object
       properties:
@@ -518,26 +618,53 @@ components:
         current_stock: { type: number }
     ProductCreate:
       type: object
-      required: [product_name, product_code, unit_price, current_stock]
+      required: [product_name, product_code, purchase_price, selling_price]
       properties:
         product_name: { type: string }
         product_code: { type: string }
-        unit_price: { type: number }
+        purchase_price: { type: number }
+        selling_price: { type: number }
         current_stock: { type: number }
+        low_stock_alert_level: { type: number }
         start_date: { type: string, format: date }
         is_active: { type: integer, enum: [0,1] }
-        notes: { type: string }
+        description: { type: string }
+        category_id: { type: integer }
+        color_id: { type: integer }
+        created_on: { type: string, format: date }
     ProductCreateMultipart:
       type: object
-      required: [product_name, product_code, unit_price, current_stock]
+      required: [product_name, product_code, purchase_price, selling_price]
       properties:
         product_name: { type: string }
         product_code: { type: string }
-        unit_price: { type: number, format: float }
+        purchase_price: { type: number, format: float }
+        selling_price: { type: number, format: float }
         current_stock: { type: number, format: float }
+        low_stock_alert_level: { type: number, format: float }
         start_date: { type: string }
         is_active: { type: integer }
-        notes: { type: string }
+        description: { type: string }
+        category_id: { type: integer }
+        color_id: { type: integer }
+        created_on: { type: string }
+        image: { type: string, format: binary }
+
+    Category:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        description: { type: string, nullable: true }
+        is_active: { type: boolean }
+        created_on: { type: string, format: date-time, nullable: true }
+    CategoryUpsert:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        description: { type: string }
+        is_active: { type: integer, enum: [0,1] }
     Order:
       type: object
       properties:
@@ -585,3 +712,26 @@ components:
         notes: { type: string }
         total_amount: { type: number }
         attachment: { type: string, format: binary }
+  /api/colors.php:
+    get:
+      operationId: list_colors
+      tags: [Products]
+      summary: List available colors
+      responses:
+        '200':
+          description: Colors
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  colors:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: { type: integer }
+                        name: { type: string }
+                        hex: { type: string, nullable: true }
+                        is_active: { type: boolean }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }

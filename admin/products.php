@@ -13,7 +13,7 @@ $summary = [
 ];
 
 try {
-  if ($result = $conn->query('SELECT COUNT(*) AS total, COALESCE(SUM(CurrentStock),0) AS stock, COALESCE(SUM(CurrentStock * UnitPrice),0) AS inventory_value, COALESCE(AVG(UnitPrice),0) AS avg_price FROM product_master')) {
+  if ($result = $conn->query('SELECT COUNT(*) AS total, COALESCE(SUM(CurrentStock),0) AS stock, COALESCE(SUM(CurrentStock * SellingPrice),0) AS inventory_value, COALESCE(AVG(SellingPrice),0) AS avg_price FROM product_master')) {
     if ($row = $result->fetch_assoc()) {
       $summary['total_products'] = (int)$row['total'];
       $summary['total_stock'] = (float)$row['stock'];
@@ -145,10 +145,11 @@ $pageScripts = ['/admin/js/products.js'];
                                 <tr>
                                     <th>Code</th>
                                     <th>Name</th>
-                                    <th>Unit Price (₹)</th>
+                                    <th>Selling Price (₹)</th>
                                     <th>Stock</th>
                                     <th>Status</th>
                                     <th>Created Date</th>
+                                    <th>Updated Date</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -182,27 +183,63 @@ $pageScripts = ['/admin/js/products.js'];
                   <input type="text" class="form-control" name="product_code" id="productCode" required>
                 </div>
                 <div class="col-md-4">
-                  <label class="form-label">Unit Price (₹)<span class="text-danger">*</span></label>
-                  <input type="number" min="0" step="0.01" class="form-control" name="unit_price" id="productPrice" required>
+                  <label class="form-label">Purchase Price (₹)<span class="text-danger">*</span></label>
+                  <input type="number" min="0" step="0.01" class="form-control" name="purchase_price" id="purchasePrice" required>
                 </div>
                 <div class="col-md-4">
-                  <label class="form-label">Initial Stock<span class="text-danger">*</span></label>
-                  <input type="number" min="0" step="0.01" class="form-control" name="current_stock" id="productStock" required>
+                  <label class="form-label">Selling Price (₹)<span class="text-danger">*</span></label>
+                  <input type="number" min="0" step="0.01" class="form-control" name="selling_price" id="sellingPrice" required>
                 </div>
                 <div class="col-md-4">
+                  <label class="form-label">Initial Stock</label>
+                  <input type="number" min="0" step="0.01" class="form-control" name="current_stock" id="productStock" value="0">
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Low Stock Alert Level</label>
+                  <input type="number" min="0" step="0.01" class="form-control" name="low_stock_alert_level" id="lowStockAlert" placeholder="Alert when stock falls below this level">
+                </div>
+                <div class="col-md-6">
                   <label class="form-label">Start Date</label>
                   <input type="date" class="form-control" name="start_date" id="productStartDate">
                 </div>
                 <div class="col-md-6">
-                  <label class="form-label">Status</label>
-                  <select class="form-select" name="is_active" id="productStatus">
-                    <option value="1" selected>Active</option>
-                    <option value="0">Inactive</option>
-                  </select>
+                  <label class="form-label">Created On</label>
+                  <input type="date" class="form-control" name="created_on" id="productCreatedOn">
                 </div>
                 <div class="col-12">
-                  <label class="form-label">Notes</label>
-                  <textarea class="form-control" name="notes" id="productNotes" rows="3" placeholder="Optional details"></textarea>
+                  <label class="form-label">Description</label>
+                  <textarea class="form-control" name="description" id="productDescription" rows="3"></textarea>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Category</label>
+                  <select class="form-select" name="category_id" id="productCategory">
+                    <option value="">Select category</option>
+                  </select>
+                </div>
+                <div class="col-md-6">
+                  <label class="form-label">Image</label>
+                  <input type="file" class="form-control" name="image" id="productImage" accept="image/*">
+                  <small class="text-muted">Supported: JPG, PNG, WEBP up to 2 MB</small>
+                </div>
+                <div class="col-12">
+                  <img id="productImagePreview" src="" alt="Preview" style="max-height: 120px; display: none; border-radius: 6px;"/>
+                </div>
+                <div class="col-12 d-flex align-items-center mt-2">
+                  <div class="form-check me-3">
+                    <input class="form-check-input" type="checkbox" id="productHasColor">
+                    <label class="form-check-label" for="productHasColor">This product has a color variant</label>
+                  </div>
+                  <div style="min-width: 280px; display: none;" id="colorSelectWrap">
+                    <select class="form-select" id="productColorSelect" name="color_id">
+                      <option value="">Select color</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="col-12 d-flex align-items-center mt-2">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="is_active" id="productIsActive" checked>
+                    <label class="form-check-label" for="productIsActive">Active Product</label>
+                  </div>
                 </div>
               </div>
               <div class="alert alert-danger d-none mt-3" id="productError"></div>
@@ -210,7 +247,7 @@ $pageScripts = ['/admin/js/products.js'];
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-              <button type="submit" class="btn btn-primary">Save Product</button>
+              <button type="submit" class="btn btn-primary">Save</button>
             </div>
           </form>
         </div>

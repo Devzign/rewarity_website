@@ -41,7 +41,7 @@ try {
     $userGroups = fetchUsers($conn, ['DEALER', 'DISTRIBUTOR', 'SALESPERSON']);
 
     $products = [];
-    if ($result = $conn->query('SELECT Id, ProductName, UnitPrice, CurrentStock FROM product_master ORDER BY ProductName')) {
+    if ($result = $conn->query('SELECT Id, ProductName, SellingPrice AS UnitPrice, CurrentStock FROM product_master ORDER BY ProductName')) {
         while ($row = $result->fetch_assoc()) {
             $products[] = [
                 'id' => (int)$row['Id'],

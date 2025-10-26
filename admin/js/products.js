@@ -24,6 +24,13 @@
   const errorAlert = document.getElementById('productError');
   const successAlert = document.getElementById('productSuccess');
   const startDateInput = document.getElementById('productStartDate');
+  const createdOnInput = document.getElementById('productCreatedOn');
+  const categorySelect = document.getElementById('productCategory');
+  const imageInput = document.getElementById('productImage');
+  const imagePreview = document.getElementById('productImagePreview');
+  const hasColorCheckbox = document.getElementById('productHasColor');
+  const colorSelectWrap = document.getElementById('colorSelectWrap');
+  const colorSelect = document.getElementById('productColorSelect');
 
   let cachedProducts = [];
   let modalInstance = null;
@@ -61,10 +68,11 @@
       tr.innerHTML = `
         <td>${product.product_code}</td>
         <td>${product.product_name}</td>
-        <td>₹${formatCurrency(product.unit_price)}</td>
+        <td>₹${formatCurrency(product.selling_price)}</td>
         <td>${parseFloat(product.current_stock).toFixed(2)}</td>
         <td>${statusBadge}</td>
-        <td>${product.start_date || ''}</td>`;
+        <td>${product.created_on || ''}</td>
+        <td>${product.updated_on || ''}</td>`;
       tableBody.appendChild(tr);
     });
   }
@@ -105,11 +113,11 @@
       alert('No products to export.');
       return;
     }
-    const headers = ['Code','Name','Unit Price','Stock','Status','Start Date'];
+    const headers = ['Code','Name','Selling Price','Stock','Status','Start Date'];
     const rows = cachedProducts.map(p => [
       p.product_code,
       p.product_name,
-      p.unit_price,
+      p.selling_price,
       p.current_stock,
       p.is_active ? 'Active' : 'Inactive',
       p.start_date || ''
@@ -138,6 +146,43 @@
     resetFormMessages();
     productForm.reset();
     startDateInput.valueAsDate = new Date();
+    createdOnInput.valueAsDate = new Date();
+    // Clear preview
+    if (imagePreview) { imagePreview.src = ''; imagePreview.style.display = 'none'; }
+    // Load categories into select
+    loadCategories();
+    // Load colors
+    loadColors();
+    // Reset color UI
+    if (colorSelectWrap) colorSelectWrap.style.display = 'none';
+    if (hasColorCheckbox) hasColorCheckbox.checked = false;
+  }
+
+  async function loadCategories() {
+    if (!categorySelect) return;
+    try {
+      const res = await fetch('/api/categories.php');
+      if (!res.ok) throw new Error('Failed to load categories');
+      const data = await res.json();
+      const cats = data.categories || [];
+      categorySelect.innerHTML = '<option value="">Select category</option>' + cats.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    } catch (e) {
+      // keep select minimal
+      categorySelect.innerHTML = '<option value="">Select category</option>';
+    }
+  }
+
+  async function loadColors() {
+    if (!colorSelect) return;
+    try {
+      const res = await fetch('/api/colors.php');
+      if (!res.ok) throw new Error('Failed to load colors');
+      const data = await res.json();
+      const cols = data.colors || [];
+      colorSelect.innerHTML = '<option value="">Select color</option>' + cols.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    } catch (e) {
+      colorSelect.innerHTML = '<option value="">Select color</option>';
+    }
   }
 
   async function submitProduct(event) {
@@ -145,6 +190,37 @@
     resetFormMessages();
 
     const formData = new FormData(productForm);
+    // Normalize checkbox to explicit numeric value
+    const isActiveEl = document.getElementById('productIsActive');
+    if (isActiveEl) {
+      formData.set('is_active', isActiveEl.checked ? '1' : '0');
+    }
+    // Created on
+    if (createdOnInput && createdOnInput.value) {
+      formData.set('created_on', createdOnInput.value);
+    }
+    // Color handling: include only if enabled and selected
+    if (hasColorCheckbox?.checked) {
+      const val = colorSelect?.value || '';
+      if (val) formData.set('color_id', val);
+    } else {
+      formData.delete('color_id');
+    }
+    // Optional: image validation client-side
+    const file = imageInput?.files?.[0];
+    if (file) {
+      const okTypes = ['image/jpeg','image/png','image/webp'];
+      if (!okTypes.includes(file.type)) {
+        errorAlert.textContent = 'Unsupported image type. Use JPG, PNG, or WEBP.';
+        errorAlert.classList.remove('d-none');
+        return;
+      }
+      if (file.size > 2 * 1024 * 1024) {
+        errorAlert.textContent = 'Image too large. Max size is 2 MB.';
+        errorAlert.classList.remove('d-none');
+        return;
+      }
+    }
     try {
       const response = await fetch(productsEndpoint, { method: 'POST', body: formData });
       const result = await response.json();
@@ -173,5 +249,19 @@
       modalInstance?.show();
     });
     productForm?.addEventListener('submit', submitProduct);
+    imageInput?.addEventListener('change', () => {
+      const file = imageInput.files && imageInput.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => { imagePreview.src = e.target.result; imagePreview.style.display = 'inline-block'; };
+        reader.readAsDataURL(file);
+      } else {
+        imagePreview.src = ''; imagePreview.style.display = 'none';
+      }
+    });
+    hasColorCheckbox?.addEventListener('change', () => {
+      if (!colorSelectWrap) return;
+      colorSelectWrap.style.display = hasColorCheckbox.checked ? 'block' : 'none';
+    });
   });
 })();
