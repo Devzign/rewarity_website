@@ -154,6 +154,13 @@ try {
       .btn-success { background:#1DB954; border-color:#1DB954; }
       .btn-success:hover { background:#17a84e; border-color:#17a84e; }
       .table > :not(caption) > * > * { vertical-align: middle; }
+      /* Make create-role form stay on a single line on wide screens */
+      @media (min-width: 992px) {
+        .role-form { flex-wrap: nowrap !important; gap: 16px; }
+        .role-form .col-md-4, .role-form .col-md-6 { flex: 1 1 auto; max-width: none; }
+        .role-form .col-action { flex: 0 0 220px; max-width: 220px; }
+        .role-form .form-text { display: none; }
+      }
     </style>
 </head>
 <body>
@@ -184,18 +191,18 @@ try {
         <?php if ($formError): ?>
           <div class="alert alert-danger"><?php echo htmlspecialchars($formError); ?></div>
         <?php endif; ?>
-        <form class="row g-3" method="post" action="/admin/roles.php">
+        <form class="row g-3 align-items-end role-form" method="post" action="/admin/roles.php">
           <input type="hidden" name="action" value="create_user_type">
           <div class="col-md-4">
             <label class="form-label">Role Name<span class="text-danger">*</span></label>
             <input type="text" name="typename" class="form-control" placeholder="e.g. Manager or MANAGER" required>
-            <small class="text-muted">Stored as uppercase code; displayed prettily.</small>
+            <small class="form-text text-muted mb-0">Stored as uppercase code; displayed prettily.</small>
           </div>
           <div class="col-md-6">
             <label class="form-label">Description</label>
             <input type="text" name="description" class="form-control" placeholder="Optional description">
           </div>
-          <div class="col-md-2 d-flex align-items-end">
+          <div class="col-md-2 d-flex align-items-end col-action">
             <button type="submit" class="btn btn-success w-100">Add Role</button>
           </div>
         </form>
