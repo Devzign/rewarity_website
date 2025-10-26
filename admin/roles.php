@@ -5,6 +5,12 @@ $currentPage = 'roles';
 $headerTitle = 'User Roles';
 $assetBase = '/Dashborad';
 
+// Authorization: only Super Admin/Admin can access
+if (empty($canManageRoles)) {
+  header('Location: /admin/dashboard.php');
+  exit;
+}
+
 function next_numeric_id(mysqli $conn, string $table, string $column = 'Id'): int
 {
   $sql = sprintf('SELECT COALESCE(MAX(`%s`), 0) + 1 AS next_id FROM `%s`', $column, $table);
@@ -24,6 +30,7 @@ function display_user_type_label(?string $code): string
 $successMessage = null;
 $errorMessage = null;
 $formError = null;
+$editing = null;
 
 // Create role handler
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'create_user_type') {
@@ -57,6 +64,68 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'creat
   }
 }
 
+// Update role handler
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'update_user_type') {
+  $id = (int)($_POST['id'] ?? 0);
+  $newTypeName = trim((string)($_POST['typename'] ?? ''));
+  $newTypeDesc = trim((string)($_POST['description'] ?? ''));
+  if ($id <= 0 || $newTypeName === '') {
+    $errorMessage = 'Invalid role update request.';
+  } else {
+    $code = strtoupper(preg_replace('/[^A-Z0-9_]+/i', '_', $newTypeName));
+    try {
+      $dup = $conn->prepare('SELECT id FROM user_type WHERE UPPER(typename) = ? AND id <> ? LIMIT 1');
+      $dup->bind_param('si', $code, $id);
+      $dup->execute();
+      if ($dup->get_result()->num_rows > 0) {
+        $formError = 'Another role with same name exists.';
+      }
+      $dup->close();
+
+      if (!$formError) {
+        $desc = $newTypeDesc !== '' ? $newTypeDesc : null;
+        $upd = $conn->prepare('UPDATE user_type SET typename = ?, description = ? WHERE id = ?');
+        $upd->bind_param('ssi', $code, $desc, $id);
+        $upd->execute();
+        $upd->close();
+        $successMessage = 'User role updated successfully.';
+      }
+    } catch (mysqli_sql_exception $e) {
+      $errorMessage = 'Failed to update role: ' . $e->getMessage();
+    }
+  }
+}
+
+// Delete role handler (only if not in use)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete_user_type') {
+  $id = (int)($_POST['id'] ?? 0);
+  if ($id <= 0) {
+    $errorMessage = 'Invalid delete request.';
+  } else {
+    try {
+      $inUse = 0;
+      if ($res = $conn->prepare('SELECT COUNT(*) AS c FROM user_master WHERE UserTypeId = ?')) {
+        $res->bind_param('i', $id);
+        $res->execute();
+        $r = $res->get_result()->fetch_assoc();
+        $inUse = (int)($r['c'] ?? 0);
+        $res->close();
+      }
+      if ($inUse > 0) {
+        $errorMessage = 'Cannot delete: role is assigned to users.';
+      } else {
+        $del = $conn->prepare('DELETE FROM user_type WHERE id = ?');
+        $del->bind_param('i', $id);
+        $del->execute();
+        $del->close();
+        $successMessage = 'User role deleted.';
+      }
+    } catch (mysqli_sql_exception $e) {
+      $errorMessage = 'Failed to delete role: ' . $e->getMessage();
+    }
+  }
+}
+
 // Load roles
 $roles = [];
 try {
@@ -79,6 +148,13 @@ try {
     <link href="vendor/jquery-nice-select/css/nice-select.css" rel="stylesheet">
     <link rel="stylesheet" href="vendor/nouislider/nouislider.min.css">
     <link href="css/style.css" rel="stylesheet">
+    <style>
+      .role-badge { background:#fde2e2; color:#d12a2a; border-radius:8px; padding:2px 8px; font-size:12px; font-weight:600; }
+      .card-soft { border-radius:14px; box-shadow:0 8px 24px rgba(0,0,0,0.06); border:0; }
+      .btn-success { background:#1DB954; border-color:#1DB954; }
+      .btn-success:hover { background:#17a84e; border-color:#17a84e; }
+      .table > :not(caption) > * > * { vertical-align: middle; }
+    </style>
 </head>
 <body>
 <?php
@@ -100,7 +176,7 @@ try {
       </div>
     <?php endif; ?>
 
-    <div class="card">
+    <div class="card card-soft">
       <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0">Create New Role</h5>
       </div>
@@ -120,25 +196,26 @@ try {
             <input type="text" name="description" class="form-control" placeholder="Optional description">
           </div>
           <div class="col-md-2 d-flex align-items-end">
-            <button type="submit" class="btn btn-primary w-100">Add Role</button>
+            <button type="submit" class="btn btn-success w-100">Add Role</button>
           </div>
         </form>
       </div>
     </div>
 
-    <div class="card mt-4">
+    <div class="card card-soft mt-4">
       <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0">Existing Roles</h5>
       </div>
       <div class="card-body">
         <div class="table-responsive">
-          <table class="table table-striped align-middle">
+          <table class="table align-middle">
             <thead>
               <tr>
                 <th style="width:100px;">ID</th>
                 <th>Role</th>
                 <th>Code</th>
                 <th>Description</th>
+                <th style="width:160px;">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -148,8 +225,48 @@ try {
                 <tr>
                   <td><?php echo (int)$r['id']; ?></td>
                   <td><?php echo htmlspecialchars($label); ?></td>
-                  <td><code><?php echo htmlspecialchars($r['typename']); ?></code></td>
+                  <td><span class="role-badge"><?php echo htmlspecialchars($r['typename']); ?></span></td>
                   <td><?php echo htmlspecialchars($r['description'] ?? ''); ?></td>
+                  <td>
+                    <div class="d-flex gap-2">
+                      <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editRoleModal<?php echo (int)$r['id']; ?>">Edit</button>
+                      <form method="post" action="/admin/roles.php" onsubmit="return confirm('Delete this role?');">
+                        <input type="hidden" name="action" value="delete_user_type">
+                        <input type="hidden" name="id" value="<?php echo (int)$r['id']; ?>">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                      </form>
+                    </div>
+                    <!-- Edit Modal -->
+                    <div class="modal fade" id="editRoleModal<?php echo (int)$r['id']; ?>" tabindex="-1" aria-hidden="true">
+                      <div class="modal-dialog">
+                        <div class="modal-content">
+                          <div class="modal-header">
+                            <h5 class="modal-title">Edit Role</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                          </div>
+                          <form method="post" action="/admin/roles.php">
+                            <input type="hidden" name="action" value="update_user_type">
+                            <input type="hidden" name="id" value="<?php echo (int)$r['id']; ?>">
+                            <div class="modal-body">
+                              <div class="mb-3">
+                                <label class="form-label">Role Name</label>
+                                <input type="text" class="form-control" name="typename" value="<?php echo htmlspecialchars($r['typename']); ?>" required>
+                                <small class="text-muted">Stored as uppercase code; displayed prettily.</small>
+                              </div>
+                              <div class="mb-3">
+                                <label class="form-label">Description</label>
+                                <input type="text" class="form-control" name="description" value="<?php echo htmlspecialchars($r['description'] ?? ''); ?>">
+                              </div>
+                            </div>
+                            <div class="modal-footer">
+                              <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                              <button type="submit" class="btn btn-success">Save Changes</button>
+                            </div>
+                          </form>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
                 </tr>
               <?php endforeach; endif; ?>
             </tbody>

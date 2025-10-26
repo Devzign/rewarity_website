@@ -14,6 +14,7 @@ $assetBase = $assetBase ?? '/Dashborad';
 $adminId = isset($_SESSION['admin_id']) ? (int)$_SESSION['admin_id'] : null;
 $adminName = (string)($_SESSION['admin'] ?? 'Admin');
 $adminEmail = '';
+$canManageRoles = false;
 
 if ($adminId) {
   $stmt = $conn->prepare('SELECT Email, DisplayName FROM admin_users WHERE Id = ? LIMIT 1');
@@ -27,6 +28,13 @@ if ($adminId) {
         if ($fetchedName !== '') {
           $adminName = $fetchedName;
           $_SESSION['admin'] = $adminName;
+        }
+        $nameForCheck = strtolower($adminName);
+        if (str_contains($nameForCheck, 'super admin') || str_contains($nameForCheck, 'admin')) {
+          $canManageRoles = true;
+        }
+        if ($adminEmail && strtolower($adminEmail) === 'admin@rewarity.com') {
+          $canManageRoles = true;
         }
       }
       $result->free();
