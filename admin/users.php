@@ -465,9 +465,11 @@ function render_address(array $row): string
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>User Management - Rewarity</title>
     <base href="<?php echo htmlspecialchars($assetBase, ENT_QUOTES); ?>/">
+    <script>try{var t=localStorage.getItem('rewarity_theme')||'light';var a=localStorage.getItem('rewarity_accent')||'green';var h=document.documentElement;h.setAttribute('data-theme',t);h.setAttribute('data-accent',a);h.classList.add('is-loading');}catch(e){}</script>
     <link href="vendor/jquery-nice-select/css/nice-select.css" rel="stylesheet">
     <link rel="stylesheet" href="vendor/nouislider/nouislider.min.css">
     <link href="css/style.css" rel="stylesheet">
+    <link href="css/theme.css" rel="stylesheet">
     <!-- Optional map CSS (Leaflet) for Dealer location picker -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <style>

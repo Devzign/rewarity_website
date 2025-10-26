@@ -86,6 +86,7 @@
   }
 
   async function loadProducts() {
+    window.dispatchEvent(new Event('rewarity:data-loading'));
     const query = buildQuery();
     const url = query ? `${productsEndpoint}?${query}` : productsEndpoint;
     try {
@@ -95,9 +96,11 @@
       const data = await response.json();
       updateSummary(data.summary);
       renderProducts(data.products);
+      window.dispatchEvent(new Event('rewarity:data-ready'));
     } catch (error) {
       console.error(error);
       tableBody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-4">Unable to load products.</td></tr>';
+      window.dispatchEvent(new Event('rewarity:data-ready'));
     }
   }
 

@@ -35,14 +35,17 @@
   }
 
   async function load(){
+    window.dispatchEvent(new Event('rewarity:data-loading'));
     tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4">Loading...</td></tr>';
     try{
       const res = await fetch(endpoint);
       if (!res.ok) throw new Error('Failed to load');
       const data = await res.json();
       renderRows(data.categories || []);
+      window.dispatchEvent(new Event('rewarity:data-ready'));
     }catch(e){
       tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-danger py-4">Unable to load categories.</td></tr>';
+      window.dispatchEvent(new Event('rewarity:data-ready'));
     }
   }
 
@@ -100,4 +103,3 @@
     tableBody?.addEventListener('click', onTableClick);
   });
 })();
-

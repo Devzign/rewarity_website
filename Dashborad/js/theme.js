@@ -20,6 +20,9 @@
         const v = btn.getAttribute('data-set-theme');
         localStorage.setItem(STORAGE_KEY, v);
         apply(v);
+        // Visual active state for chips
+        document.querySelectorAll('.theme-chip').forEach(el => el.classList.remove('active'));
+        if (btn.classList.contains('theme-chip')) btn.classList.add('active');
       });
     });
     document.querySelectorAll('[data-set-accent]').forEach(btn => {
@@ -29,9 +32,12 @@
         apply(null, v);
       });
     });
+
+    // Activate current chip if present
+    const activeChip = document.querySelector(`.theme-chip[data-set-theme="${saved}"]`);
+    if (activeChip) activeChip.classList.add('active');
   }
 
   // Apply as early as possible
   try { init(); } catch(e) {}
 })();
-

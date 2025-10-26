@@ -147,7 +147,9 @@ try {
     <base href="<?php echo htmlspecialchars($assetBase, ENT_QUOTES); ?>/">
     <link href="vendor/jquery-nice-select/css/nice-select.css" rel="stylesheet">
     <link rel="stylesheet" href="vendor/nouislider/nouislider.min.css">
+    <script>try{var t=localStorage.getItem('rewarity_theme')||'light';var a=localStorage.getItem('rewarity_accent')||'green';var h=document.documentElement;h.setAttribute('data-theme',t);h.setAttribute('data-accent',a);h.classList.add('is-loading');}catch(e){}</script>
     <link href="css/style.css" rel="stylesheet">
+    <link href="css/theme.css" rel="stylesheet">
     <style>
       .role-badge { background:#fde2e2; color:#d12a2a; border-radius:8px; padding:2px 8px; font-size:12px; font-weight:600; }
       .card-soft { border-radius:14px; box-shadow:0 8px 24px rgba(0,0,0,0.06); border:0; }

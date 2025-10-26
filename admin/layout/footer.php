@@ -18,6 +18,7 @@
     <script src="js/dlabnav-init.js"></script>
     <script src="js/demo.js"></script>
     <script src="js/styleSwitcher.js"></script>
+    <script src="js/boot.js"></script>
     <script src="js/theme.js"></script>
     <?php
     if (!empty($pageScripts)) {
