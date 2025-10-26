@@ -150,6 +150,13 @@ try {
     <script>try{var t=localStorage.getItem('rewarity_theme')||'light';var a=localStorage.getItem('rewarity_accent')||'green';var h=document.documentElement;h.setAttribute('data-theme',t);h.setAttribute('data-accent',a);}catch(e){}</script>
     <link href="css/style.css" rel="stylesheet">
     <link href="css/theme.css" rel="stylesheet">
+    <script>
+      // Soft page-loader: show brief branded loader on open for consistency
+      try {
+        window.dispatchEvent(new Event('rewarity:data-loading'));
+        window.addEventListener('load', function(){ setTimeout(function(){ window.dispatchEvent(new Event('rewarity:data-ready')); }, 350); });
+      } catch(e) {}
+    </script>
     <style>
       .role-badge { background:#fde2e2; color:#d12a2a; border-radius:8px; padding:2px 8px; font-size:12px; font-weight:600; }
       .card-soft { border-radius:14px; box-shadow:0 8px 24px rgba(0,0,0,0.06); border:0; }

@@ -19,6 +19,13 @@ $pageScripts = ['/admin/js/categories.js'];
     <script>try{var t=localStorage.getItem('rewarity_theme')||'light';var a=localStorage.getItem('rewarity_accent')||'green';var h=document.documentElement;h.setAttribute('data-theme',t);h.setAttribute('data-accent',a);}catch(e){}</script>
     <link href="css/style.css" rel="stylesheet">
     <link href="css/theme.css" rel="stylesheet">
+    <script>
+      // Soft page-loader for this page as well
+      try {
+        window.dispatchEvent(new Event('rewarity:data-loading'));
+        window.addEventListener('load', function(){ setTimeout(function(){ window.dispatchEvent(new Event('rewarity:data-ready')); }, 350); });
+      } catch(e) {}
+    </script>
 </head>
 <body>
   <?php require __DIR__ . '/layout/header.php'; ?>

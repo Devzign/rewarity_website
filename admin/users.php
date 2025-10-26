@@ -470,6 +470,13 @@ function render_address(array $row): string
     <link rel="stylesheet" href="vendor/nouislider/nouislider.min.css">
     <link href="css/style.css" rel="stylesheet">
     <link href="css/theme.css" rel="stylesheet">
+    <script>
+      // Soft page-loader for user management open
+      try {
+        window.dispatchEvent(new Event('rewarity:data-loading'));
+        window.addEventListener('load', function(){ setTimeout(function(){ window.dispatchEvent(new Event('rewarity:data-ready')); }, 350); });
+      } catch(e) {}
+    </script>
     <!-- Optional map CSS (Leaflet) for Dealer location picker -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <style>
