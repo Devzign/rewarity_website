@@ -30,6 +30,12 @@ $currentPage = $currentPage ?? '';
                 <span class="nav-text">Products</span>
               </a>
             </li>
+            <li class="<?php echo $currentPage === 'colors' ? 'mm-active' : ''; ?>">
+              <a href="/admin/colors.php" aria-expanded="false">
+                <i class="las la-palette"></i>
+                <span class="nav-text">Colors</span>
+              </a>
+            </li>
             <li class="<?php echo $currentPage === 'categories' ? 'mm-active' : ''; ?>">
               <a href="/admin/categories.php" aria-expanded="false">
                 <i class="las la-tags"></i>

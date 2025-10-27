@@ -672,6 +672,21 @@ components:
         name: { type: string }
         description: { type: string }
         is_active: { type: integer, enum: [0,1] }
+    Color:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        hex: { type: string, nullable: true, example: '#FF0000' }
+        is_active: { type: boolean }
+        created_on: { type: string, format: date-time, nullable: true }
+    ColorUpsert:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        hex: { type: string, example: '#FF0000' }
+        is_active: { type: integer, enum: [0,1] }
     Order:
       type: object
       properties:
@@ -724,6 +739,11 @@ components:
       operationId: list_colors
       tags: [Products]
       summary: List available colors
+      parameters:
+        - in: query
+          name: all
+          schema: { type: integer, enum: [0,1] }
+          description: When 1, returns all colors (active and inactive). Default returns only active.
       responses:
         '200':
           description: Colors
@@ -735,10 +755,34 @@ components:
                   colors:
                     type: array
                     items:
-                      type: object
-                      properties:
-                        id: { type: integer }
-                        name: { type: string }
-                        hex: { type: string, nullable: true }
-                        is_active: { type: boolean }
+                      $ref: '#/components/schemas/Color'
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+    post:
+      operationId: upsert_color
+      tags: [Products]
+      summary: Create or update color
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ColorUpsert'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ColorUpsert'
+      responses:
+        '200': { description: Saved }
+        '422': { description: Validation error }
+        '401': { $ref: '#/components/responses/UnauthorizedError' }
+    delete:
+      operationId: delete_color
+      tags: [Products]
+      summary: Delete color
+      parameters:
+        - in: query
+          name: id
+          schema: { type: integer }
+          required: true
+      responses:
+        '200': { description: Deleted }
         '401': { $ref: '#/components/responses/UnauthorizedError' }

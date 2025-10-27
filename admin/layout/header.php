@@ -31,7 +31,7 @@ $headerTitle = $headerTitle ?? 'Dashboard';
           </div>
                   <ul class="navbar-nav header-right">
             <!-- Theme switcher -->
-            <!-- <li class="nav-item dropdown me-2">
+            <li class="nav-item dropdown me-2">
               <a class="nav-link" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="Theme">
                 <i class="las la-adjust"></i>
               </a>
@@ -50,7 +50,7 @@ $headerTitle = $headerTitle ?? 'Dashboard';
                   <span class="accent-dot" style="background:#f59e0b" data-set-accent="orange" title="Orange"></span>
                 </div>
               </div>
-            </li> -->
+            </li>
             <!-- Search temporarily hidden -->
             <!--
             <li class="nav-item">
