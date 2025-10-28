@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<ruleset name="Rewarity Coding Standard">
+  <description>PSR-12 with a few practical exclusions.</description>
+
+  <file>api</file>
+  <file>includes</file>
+  <file>admin</file>
+
+  <exclude-pattern>**/vendor/*</exclude-pattern>
+  <exclude-pattern>**/Dashborad/*</exclude-pattern>
+
+  <rule ref="PSR12"/>
+
+  <!-- Allow short open echo tags in templates if encountered -->
+  <rule ref="Generic.PHP.DisallowShortOpenTag" severity="0"/>
+</ruleset>
+

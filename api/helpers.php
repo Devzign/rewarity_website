@@ -12,6 +12,35 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS') {
 }
 
 /**
+ * Register default JSON error/exception handlers for APIs.
+ * Converts PHP warnings/notices to exceptions and emits a consistent JSON error payload.
+ */
+function register_api_error_handler(): void
+{
+  static $registered = false;
+  if ($registered) return;
+  $registered = true;
+
+  set_error_handler(function ($severity, $message, $file, $line) {
+    // Respect @-operator
+    if (!(error_reporting() & $severity)) {
+      return false;
+    }
+    throw new ErrorException($message, 0, $severity, $file, $line);
+  });
+
+  set_exception_handler(function ($e) {
+    $isProd = (getenv('APP_ENV') ?: 'production') === 'production';
+    $payload = ['error' => 'Server error'];
+    if (!$isProd) {
+      $payload['details'] = $e->getMessage();
+    }
+    http_response_code(500);
+    echo json_encode($payload, JSON_UNESCAPED_UNICODE);
+  });
+}
+
+/**
  * Send a JSON response and terminate execution.
  */
 function json_response(int $statusCode, array $payload): void

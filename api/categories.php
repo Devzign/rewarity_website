@@ -7,6 +7,9 @@ header('Content-Type: application/json; charset=utf-8');
 // Admin endpoints; require auth
 require_auth();
 
+// Unified error handling
+register_api_error_handler();
+
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
 function ensure_category_table(mysqli $conn): void {
@@ -40,10 +43,9 @@ if ($method === 'GET') {
         'created_on' => $row['CreatedOn'] ? date('Y-m-d H:i:s', strtotime($row['CreatedOn'])) : null,
       ];
     }
-    echo json_encode(['categories' => $rows]);
+    json_response(200, ['categories' => $rows]);
   } catch (mysqli_sql_exception $e) {
-    http_response_code(500);
-    echo json_encode(['error' => 'Failed to load categories', 'details' => $e->getMessage()]);
+    json_response(500, ['error' => 'Failed to load categories', 'details' => $e->getMessage()]);
   }
   exit;
 }
@@ -65,11 +67,7 @@ if ($method === 'POST') {
   $name = trim((string)($payload['name'] ?? ''));
   $desc = isset($payload['description']) ? trim((string)$payload['description']) : null;
   $isActive = isset($payload['is_active']) ? (int)$payload['is_active'] : 1;
-  if ($name === '') {
-    http_response_code(422);
-    echo json_encode(['error' => 'Category name is required']);
-    exit;
-  }
+  if ($name === '') { json_response(422, ['error' => 'Category name is required']); }
 
   try {
     if ($id) {
@@ -77,18 +75,17 @@ if ($method === 'POST') {
       $stmt->bind_param('ssii', $name, $desc, $isActive, $id);
       $stmt->execute();
       $stmt->close();
-      echo json_encode(['message' => 'Category updated', 'id' => $id]);
+      json_response(200, ['message' => 'Category updated', 'id' => $id]);
     } else {
       $newId = next_numeric_id($conn, 'category_master');
       $stmt = $conn->prepare('INSERT INTO category_master (Id, CategoryName, Description, IsActive) VALUES (?, ?, ?, ?)');
       $stmt->bind_param('issi', $newId, $name, $desc, $isActive);
       $stmt->execute();
       $stmt->close();
-      echo json_encode(['message' => 'Category created', 'id' => $newId]);
+      json_response(200, ['message' => 'Category created', 'id' => $newId]);
     }
   } catch (mysqli_sql_exception $e) {
-    http_response_code(500);
-    echo json_encode(['error' => 'Failed to save category', 'details' => $e->getMessage()]);
+    json_response(500, ['error' => 'Failed to save category', 'details' => $e->getMessage()]);
   }
   exit;
 }
@@ -97,19 +94,17 @@ if ($method === 'DELETE') {
   ensure_category_table($conn);
   parse_str($_SERVER['QUERY_STRING'] ?? '', $qs);
   $id = isset($qs['id']) ? (int)$qs['id'] : 0;
-  if ($id <= 0) { http_response_code(422); echo json_encode(['error' => 'id is required']); exit; }
+  if ($id <= 0) { json_response(422, ['error' => 'id is required']); }
   try {
     $stmt = $conn->prepare('DELETE FROM category_master WHERE Id = ?');
     $stmt->bind_param('i', $id);
     $stmt->execute();
     $stmt->close();
-    echo json_encode(['message' => 'Category deleted']);
+    json_response(200, ['message' => 'Category deleted']);
   } catch (mysqli_sql_exception $e) {
-    http_response_code(500);
-    echo json_encode(['error' => 'Failed to delete category', 'details' => $e->getMessage()]);
+    json_response(500, ['error' => 'Failed to delete category', 'details' => $e->getMessage()]);
   }
   exit;
 }
 
-http_response_code(405);
-echo json_encode(['error' => 'Method not allowed']);
+json_response(405, ['error' => 'Method not allowed']);

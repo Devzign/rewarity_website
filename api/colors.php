@@ -9,6 +9,9 @@ require_auth();
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
+// Unified error handling for JSON API
+register_api_error_handler();
+
 function ensure_color_table(mysqli $conn): void {
   try {
     $sql = "CREATE TABLE IF NOT EXISTS `color_master` (
@@ -43,10 +46,9 @@ if ($method === 'GET') {
         'created_on' => $row['CreatedOn'] ? date('Y-m-d H:i:s', strtotime($row['CreatedOn'])) : null,
       ];
     }
-    echo json_encode(['colors' => $rows]);
+    json_response(200, ['colors' => $rows]);
   } catch (mysqli_sql_exception $e) {
-    http_response_code(500);
-    echo json_encode(['error' => 'Failed to load colors', 'details' => $e->getMessage()]);
+    json_response(500, ['error' => 'Failed to load colors', 'details' => $e->getMessage()]);
   }
   exit;
 }
@@ -70,21 +72,15 @@ if ($method === 'POST') {
   $isActive = isset($payload['is_active']) ? (int)$payload['is_active'] : 1;
 
   if ($name === '') {
-    http_response_code(422);
-    echo json_encode(['error' => 'Color name is required']);
-    exit;
+    json_response(422, ['error' => 'Color name is required']);
   }
   if ($hex === null || $hex === '') {
-    http_response_code(422);
-    echo json_encode(['error' => 'Color code is required']);
-    exit;
+    json_response(422, ['error' => 'Color code is required']);
   }
   // Normalize hex like #AABBCC
   if ($hex[0] !== '#') { $hex = '#' . $hex; }
   if (!preg_match('/^#[0-9a-fA-F]{6}$/', $hex)) {
-    http_response_code(422);
-    echo json_encode(['error' => 'Invalid color code. Use format #RRGGBB']);
-    exit;
+    json_response(422, ['error' => 'Invalid color code. Use format #RRGGBB']);
   }
 
   try {
@@ -93,18 +89,17 @@ if ($method === 'POST') {
       $stmt->bind_param('ssii', $name, $hex, $isActive, $id);
       $stmt->execute();
       $stmt->close();
-      echo json_encode(['message' => 'Color updated', 'id' => $id]);
+      json_response(200, ['message' => 'Color updated', 'id' => $id]);
     } else {
       $newId = next_numeric_id($conn, 'color_master');
       $stmt = $conn->prepare('INSERT INTO color_master (Id, ColorName, HexCode, IsActive) VALUES (?, ?, ?, ?)');
       $stmt->bind_param('issi', $newId, $name, $hex, $isActive);
       $stmt->execute();
       $stmt->close();
-      echo json_encode(['message' => 'Color created', 'id' => $newId]);
+      json_response(200, ['message' => 'Color created', 'id' => $newId]);
     }
   } catch (mysqli_sql_exception $e) {
-    http_response_code(500);
-    echo json_encode(['error' => 'Failed to save color', 'details' => $e->getMessage()]);
+    json_response(500, ['error' => 'Failed to save color', 'details' => $e->getMessage()]);
   }
   exit;
 }
@@ -113,19 +108,17 @@ if ($method === 'DELETE') {
   ensure_color_table($conn);
   parse_str($_SERVER['QUERY_STRING'] ?? '', $qs);
   $id = isset($qs['id']) ? (int)$qs['id'] : 0;
-  if ($id <= 0) { http_response_code(422); echo json_encode(['error' => 'id is required']); exit; }
+  if ($id <= 0) { json_response(422, ['error' => 'id is required']); }
   try {
     $stmt = $conn->prepare('DELETE FROM color_master WHERE Id = ?');
     $stmt->bind_param('i', $id);
     $stmt->execute();
     $stmt->close();
-    echo json_encode(['message' => 'Color deleted']);
+    json_response(200, ['message' => 'Color deleted']);
   } catch (mysqli_sql_exception $e) {
-    http_response_code(500);
-    echo json_encode(['error' => 'Failed to delete color', 'details' => $e->getMessage()]);
+    json_response(500, ['error' => 'Failed to delete color', 'details' => $e->getMessage()]);
   }
   exit;
 }
 
-http_response_code(405);
-echo json_encode(['error' => 'Method not allowed']);
+json_response(405, ['error' => 'Method not allowed']);
