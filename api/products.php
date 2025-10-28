@@ -7,6 +7,9 @@ header('Content-Type: application/json; charset=utf-8');
 // Enforce authentication (Bearer token or admin session)
 require_auth();
 
+// Unified error handling for JSON APIs
+register_api_error_handler();
+
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
 if ($method === 'GET') {
@@ -91,10 +94,9 @@ if ($method === 'GET') {
         }
         $stmt->close();
 
-        echo json_encode(['summary' => $summary, 'products' => $products]);
+        json_response(200, ['summary' => $summary, 'products' => $products]);
     } catch (mysqli_sql_exception $exception) {
-        http_response_code(500);
-        echo json_encode(['error' => 'Failed to fetch products', 'details' => $exception->getMessage()]);
+        json_response(500, ['error' => 'Failed to fetch products', 'details' => $exception->getMessage()]);
     }
     exit;
 }
@@ -169,23 +171,17 @@ if ($method === 'POST') {
     if ($isMultipart && isset($_FILES['image']) && is_array($_FILES['image']) && ($_FILES['image']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
         $file = $_FILES['image'];
         if (($file['error'] ?? 0) !== UPLOAD_ERR_OK) {
-            http_response_code(422);
-            echo json_encode(['error' => 'Image upload failed.']);
-            exit;
+            json_response(422, ['error' => 'Image upload failed.']);
         }
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
         $mime = finfo_file($finfo, $file['tmp_name']);
         finfo_close($finfo);
         $allowed = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
         if (!isset($allowed[$mime])) {
-            http_response_code(422);
-            echo json_encode(['error' => 'Unsupported image type. Use JPG, PNG, or WEBP.']);
-            exit;
+            json_response(422, ['error' => 'Unsupported image type. Use JPG, PNG, or WEBP.']);
         }
         if ($file['size'] > 2 * 1024 * 1024) { // 2MB limit
-            http_response_code(422);
-            echo json_encode(['error' => 'Image too large. Max 2 MB.']);
-            exit;
+            json_response(422, ['error' => 'Image too large. Max 2 MB.']);
         }
 
         // Defer final path until after we have product id
@@ -197,9 +193,7 @@ if ($method === 'POST') {
         $checkStmt->execute();
         if ($checkStmt->get_result()->num_rows > 0) {
             $checkStmt->close();
-            http_response_code(409);
-            echo json_encode(['error' => 'Product code already exists.']);
-            exit;
+            json_response(409, ['error' => 'Product code already exists.']);
         }
         $checkStmt->close();
 
@@ -256,13 +250,11 @@ if ($method === 'POST') {
 
         $out = ['message' => 'Product created successfully', 'product_id' => $nextId];
         if ($imageUrl) { $out['image_url'] = $imageUrl; }
-        echo json_encode($out);
+        json_response(200, $out);
     } catch (mysqli_sql_exception $exception) {
-        http_response_code(500);
-        echo json_encode(['error' => 'Failed to create product', 'details' => $exception->getMessage()]);
+        json_response(500, ['error' => 'Failed to create product', 'details' => $exception->getMessage()]);
     }
     exit;
 }
 
-http_response_code(405);
-echo json_encode(['error' => 'Method not allowed']);
+json_response(405, ['error' => 'Method not allowed']);
